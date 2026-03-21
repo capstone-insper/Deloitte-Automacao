@@ -205,6 +205,14 @@ with tab_temporal:
         )
         st.plotly_chart(fig_linha, use_container_width=True)
         st.dataframe(df_serie, use_container_width=True)
+        
+        csv_serie = df_serie.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="Baixar CSV - Série Temporal",
+            data=csv_serie,
+            file_name="serie_temporal.csv",
+            mime="text/csv",
+        )
     else:
         st.info("Coluna de data não encontrada.")
 
@@ -227,6 +235,14 @@ with tab_area:
         )
         st.plotly_chart(fig_bar, use_container_width=True)
         st.dataframe(df_area, use_container_width=True)
+        
+        csv_area = df_area.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="Baixar CSV - Área",
+            data=csv_area,
+            file_name="orcado_vs_realizado_area.csv",
+            mime="text/csv",
+        )
 
     if "Sigla da Subarea" in df.columns:
         st.subheader("Receita por Sub-Área")
@@ -243,6 +259,14 @@ with tab_area:
         )
         st.plotly_chart(fig_sub, use_container_width=True)
         st.dataframe(df_sub, use_container_width=True)
+        
+        csv_sub = df_sub.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="Baixar CSV - Sub-Área",
+            data=csv_sub,
+            file_name="receita_por_subarea.csv",
+            mime="text/csv",
+        )
 
 # ── ABA 4: PROJETOS ──────────────────────────────────────────────────────────
 
@@ -263,6 +287,14 @@ with tab_projetos:
         )
         st.plotly_chart(fig_proj, use_container_width=True)
         st.dataframe(df_proj, use_container_width=True)
+        
+        csv_proj = df_proj.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="Baixar CSV - Projetos",
+            data=csv_proj,
+            file_name="receita_por_projeto.csv",
+            mime="text/csv",
+        )
 
     if "Mês/Ano" in df.columns and "Projeto" in df.columns and "Receita Líquida" in df.columns:
         st.subheader("Evolução de Receita por Projeto")
@@ -303,6 +335,14 @@ with tab_desvios:
         )
         st.plotly_chart(fig_desv, use_container_width=True)
         st.dataframe(df_desv, use_container_width=True)
+        
+        csv_desv = df_desv.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="Baixar CSV - Desvios",
+            data=csv_desv,
+            file_name="ranking_desvios_projeto.csv",
+            mime="text/csv",
+        )
 
     if "Área" in df.columns and "Custo Total" in df.columns:
         st.subheader("Custos por Área")
@@ -319,6 +359,14 @@ with tab_desvios:
         )
         st.plotly_chart(fig_custo, use_container_width=True)
         st.dataframe(df_custo, use_container_width=True)
+        
+        csv_custo = df_custo.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="Baixar CSV - Custos",
+            data=csv_custo,
+            file_name="custos_por_area.csv",
+            mime="text/csv",
+        )
 
 # ── ABA 6: DADOS BRUTOS ──────────────────────────────────────────────────────
 
