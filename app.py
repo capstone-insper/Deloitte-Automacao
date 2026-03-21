@@ -40,8 +40,8 @@ def carregar_base() -> pd.DataFrame:
     else:
         return pd.DataFrame()
 
-    if "mes_ano" in df.columns:
-        df["mes_ano"] = pd.to_datetime(df["mes_ano"], errors="coerce")
+    if "Mês/Ano" in df.columns:
+        df["Mês/Ano"] = pd.to_datetime(df["Mês/Ano"], errors="coerce")
     return df
 
 
@@ -53,8 +53,8 @@ df_base = carregar_base()
 
 params = st.query_params
 
-areas_disponiveis = sorted(df_base["area"].dropna().unique().tolist()) if "area" in df_base.columns else []
-projetos_disponiveis = sorted(df_base["projeto"].dropna().unique().tolist()) if "projeto" in df_base.columns else []
+areas_disponiveis = sorted(df_base["Área"].dropna().unique().tolist()) if "Área" in df_base.columns else []
+projetos_disponiveis = sorted(df_base["Projeto"].dropna().unique().tolist()) if "Projeto" in df_base.columns else []
 
 # Lê filtros salvos na URL ou usa todos como padrão
 areas_default = params.get_all("area") or areas_disponiveis
@@ -65,9 +65,9 @@ areas_default = [a for a in areas_default if a in areas_disponiveis] or areas_di
 projetos_default = [p for p in projetos_default if p in projetos_disponiveis] or projetos_disponiveis
 
 # Data
-if "mes_ano" in df_base.columns and not df_base["mes_ano"].isna().all():
-    min_data = df_base["mes_ano"].min().date()
-    max_data = df_base["mes_ano"].max().date()
+if "Mês/Ano" in df_base.columns and not df_base["Mês/Ano"].isna().all():
+    min_data = df_base["Mês/Ano"].min().date()
+    max_data = df_base["Mês/Ano"].max().date()
     try:
         data_ini = pd.to_datetime(params.get("data_ini")).date() if "data_ini" in params else min_data
         data_fim = pd.to_datetime(params.get("data_fim")).date() if "data_fim" in params else max_data
@@ -117,16 +117,16 @@ if periodo_sel and len(periodo_sel) == 2:
 
 df = df_base.copy()
 
-if area_sel and "area" in df.columns:
-    df = df[df["area"].isin(area_sel)]
+if area_sel and "Área" in df.columns:
+    df = df[df["Área"].isin(area_sel)]
 
-if projeto_sel and "projeto" in df.columns:
-    df = df[df["projeto"].isin(projeto_sel)]
+if projeto_sel and "Projeto" in df.columns:
+    df = df[df["Projeto"].isin(projeto_sel)]
 
-if periodo_sel and len(periodo_sel) == 2 and "mes_ano" in df.columns:
+if periodo_sel and len(periodo_sel) == 2 and "Mês/Ano" in df.columns:
     df = df[
-        (df["mes_ano"] >= pd.Timestamp(periodo_sel[0])) &
-        (df["mes_ano"] <= pd.Timestamp(periodo_sel[1]))
+        (df["Mês/Ano"] >= pd.Timestamp(periodo_sel[0])) &
+        (df["Mês/Ano"] <= pd.Timestamp(periodo_sel[1]))
     ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -159,11 +159,11 @@ tab_kpi, tab_temporal, tab_area, tab_projetos, tab_desvios, tab_dados = st.tabs(
 with tab_kpi:
     st.subheader("KPIs Executivos")
 
-    receita_realizada = df["receita_liquida"].sum() if "receita_liquida" in df.columns else 0
-    receita_prevista  = df["receita_prevista"].sum() if "receita_prevista" in df.columns else 0
-    custo_total       = df["custo_total"].sum() if "custo_total" in df.columns else 0
-    desvio_medio      = df["desvio_pct"].mean() if "desvio_pct" in df.columns else 0
-    atingimento_medio = df["atingimento_pct"].mean() if "atingimento_pct" in df.columns else 0
+    receita_realizada = df["Receita Líquida"].sum() if "Receita Líquida" in df.columns else 0
+    receita_prevista  = df["Receita Prevista"].sum() if "Receita Prevista" in df.columns else 0
+    custo_total       = df["Custo Total"].sum() if "Custo Total" in df.columns else 0
+    desvio_medio      = df["Desvio %"].mean() if "Desvio %" in df.columns else 0
+    atingimento_medio = df["Atingimento %"].mean() if "Atingimento %" in df.columns else 0
 
     col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("Receita Realizada", f"R$ {receita_realizada:,.0f}")
@@ -173,16 +173,16 @@ with tab_kpi:
     col5.metric("Atingimento Médio", f"{atingimento_medio:.1f}%")
 
     # Participação % por sub-área calculada do df filtrado
-    if "sigla_sub_area" in df.columns and "receita_liquida" in df.columns:
+    if "Sigla da Subarea" in df.columns and "Receita Líquida" in df.columns:
         st.subheader("Participação por Sub-Área")
         df_part = (
-            df.groupby("sigla_sub_area")["receita_liquida"]
+            df.groupby("Sigla da Subarea")["Receita Líquida"]
             .sum()
             .reset_index()
-            .rename(columns={"receita_liquida": "receita"})
+            .rename(columns={"Receita Líquida": "receita"})
         )
         col_a, col_b = st.columns(2)
-        fig_pizza = px.pie(df_part, names="sigla_sub_area", values="receita", title="Receita por Sub-Área")
+        fig_pizza = px.pie(df_part, names="Sigla da Subarea", values="receita", title="Receita por Sub-Área")
         col_a.plotly_chart(fig_pizza, use_container_width=True)
         col_b.dataframe(df_part, use_container_width=True)
 
@@ -191,17 +191,17 @@ with tab_kpi:
 with tab_temporal:
     st.subheader("Evolução Mensal — Orçado vs Realizado")
 
-    if "mes_ano" in df.columns:
-        cols_agg = [c for c in ["receita_prevista", "receita_liquida", "custo_total"] if c in df.columns]
-        df_serie = df.groupby("mes_ano")[cols_agg].sum().reset_index().sort_values("mes_ano")
+    if "Mês/Ano" in df.columns:
+        cols_agg = [c for c in ["Receita Prevista", "Receita Líquida", "Custo Total"] if c in df.columns]
+        df_serie = df.groupby("Mês/Ano")[cols_agg].sum().reset_index().sort_values("Mês/Ano")
 
         fig_linha = px.line(
             df_serie,
-            x="mes_ano",
+            x="Mês/Ano",
             y=cols_agg,
             markers=True,
             title="Série Temporal Mensal",
-            labels={"mes_ano": "Mês", "value": "R$", "variable": "Métrica"},
+            labels={"Mês/Ano": "Mês", "value": "R$", "variable": "Métrica"},
         )
         st.plotly_chart(fig_linha, use_container_width=True)
         st.dataframe(df_serie, use_container_width=True)
@@ -213,13 +213,13 @@ with tab_temporal:
 with tab_area:
     st.subheader("Orçado vs Realizado por Área")
 
-    if "area" in df.columns:
-        cols_agg = [c for c in ["receita_prevista", "receita_liquida", "custo_total"] if c in df.columns]
-        df_area = df.groupby("area")[cols_agg].sum().reset_index()
+    if "Área" in df.columns:
+        cols_agg = [c for c in ["Receita Prevista", "Receita Líquida", "Custo Total"] if c in df.columns]
+        df_area = df.groupby("Área")[cols_agg].sum().reset_index()
 
         fig_bar = px.bar(
             df_area,
-            x="area",
+            x="Área",
             y=cols_agg,
             barmode="group",
             title="Comparativo por Área",
@@ -228,14 +228,14 @@ with tab_area:
         st.plotly_chart(fig_bar, use_container_width=True)
         st.dataframe(df_area, use_container_width=True)
 
-    if "sigla_sub_area" in df.columns:
+    if "Sigla da Subarea" in df.columns:
         st.subheader("Receita por Sub-Área")
-        cols_agg2 = [c for c in ["receita_prevista", "receita_liquida"] if c in df.columns]
-        df_sub = df.groupby("sigla_sub_area")[cols_agg2].sum().reset_index()
+        cols_agg2 = [c for c in ["Receita Prevista", "Receita Líquida"] if c in df.columns]
+        df_sub = df.groupby("Sigla da Subarea")[cols_agg2].sum().reset_index()
 
         fig_sub = px.bar(
             df_sub,
-            x="sigla_sub_area",
+            x="Sigla da Subarea",
             y=cols_agg2,
             barmode="group",
             title="Receita por Sub-Área",
@@ -249,13 +249,13 @@ with tab_area:
 with tab_projetos:
     st.subheader("Receita por Projeto")
 
-    if "projeto" in df.columns:
-        cols_agg = [c for c in ["receita_prevista", "receita_liquida", "custo_total"] if c in df.columns]
-        df_proj = df.groupby("projeto")[cols_agg].sum().reset_index().sort_values("receita_liquida", ascending=False)
+    if "Projeto" in df.columns:
+        cols_agg = [c for c in ["Receita Prevista", "Receita Líquida", "Custo Total"] if c in df.columns]
+        df_proj = df.groupby("Projeto")[cols_agg].sum().reset_index().sort_values("Receita Líquida", ascending=False)
 
         fig_proj = px.bar(
             df_proj,
-            x="projeto",
+            x="Projeto",
             y=cols_agg,
             barmode="group",
             title="Receita por Projeto",
@@ -264,17 +264,17 @@ with tab_projetos:
         st.plotly_chart(fig_proj, use_container_width=True)
         st.dataframe(df_proj, use_container_width=True)
 
-    if "mes_ano" in df.columns and "projeto" in df.columns and "receita_liquida" in df.columns:
+    if "Mês/Ano" in df.columns and "Projeto" in df.columns and "Receita Líquida" in df.columns:
         st.subheader("Evolução de Receita por Projeto")
-        df_proj_tempo = df.groupby(["mes_ano", "projeto"])["receita_liquida"].sum().reset_index()
+        df_proj_tempo = df.groupby(["Mês/Ano", "Projeto"])["Receita Líquida"].sum().reset_index()
         fig_proj_linha = px.line(
             df_proj_tempo,
-            x="mes_ano",
-            y="receita_liquida",
-            color="projeto",
+            x="Mês/Ano",
+            y="Receita Líquida",
+            color="Projeto",
             markers=True,
             title="Receita Mensal por Projeto",
-            labels={"mes_ano": "Mês", "receita_liquida": "R$"},
+            labels={"Mês/Ano": "Mês", "Receita Líquida": "R$"},
         )
         st.plotly_chart(fig_proj_linha, use_container_width=True)
 
@@ -283,35 +283,35 @@ with tab_projetos:
 with tab_desvios:
     st.subheader("Ranking de Desvios por Projeto")
 
-    if "projeto" in df.columns and "desvio_pct" in df.columns:
+    if "Projeto" in df.columns and "Desvio %" in df.columns:
         df_desv = (
-            df.groupby("projeto")[["desvio_pct", "atingimento_pct"]]
+            df.groupby("Projeto")[["Desvio %", "Atingimento %"]]
             .mean()
             .reset_index()
-            .sort_values("desvio_pct")
+            .sort_values("Desvio %")
         )
 
         fig_desv = px.bar(
             df_desv,
-            x="desvio_pct",
-            y="projeto",
+            x="Desvio %",
+            y="Projeto",
             orientation="h",
             title="Desvio Médio por Projeto (%)",
-            color="desvio_pct",
+            color="Desvio %",
             color_continuous_scale="RdYlGn",
-            labels={"desvio_pct": "Desvio (%)", "projeto": "Projeto"},
+            labels={"Desvio %": "Desvio (%)", "Projeto": "Projeto"},
         )
         st.plotly_chart(fig_desv, use_container_width=True)
         st.dataframe(df_desv, use_container_width=True)
 
-    if "area" in df.columns and "custo_total" in df.columns:
+    if "Área" in df.columns and "Custo Total" in df.columns:
         st.subheader("Custos por Área")
-        cols_custo = [c for c in ["custo_total", "allowance", "contingencia"] if c in df.columns]
-        df_custo = df.groupby("area")[cols_custo].sum().reset_index()
+        cols_custo = [c for c in ["Custo Total", "Allowance", "Contingência"] if c in df.columns]
+        df_custo = df.groupby("Área")[cols_custo].sum().reset_index()
 
         fig_custo = px.bar(
             df_custo,
-            x="area",
+            x="Área",
             y=cols_custo,
             barmode="group",
             title="Breakdown de Custos por Área",

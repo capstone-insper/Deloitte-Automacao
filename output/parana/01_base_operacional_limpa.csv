@@ -1,4 +1,4 @@
-﻿ajuste,allowance,funcionario,centro_de_custo,projeto,contingencia,area,mes_ano,id_quinzena,receita_prevista,receita_liquida,sigla_sub_area,ano,mes,ano_mes_str,custo_total,desvio_receita,desvio_pct,atingimento_pct,receita_ajustada
+﻿Ajuste,Allowance,Funcionário,Centro de Custo,Projeto,Contingência,Área,Mês/Ano,ID Quinzena,Receita Prevista,Receita Líquida,Sigla da Subarea,Ano,Mês,Ano-Mês,Custo Total,Desvio Receita,Desvio %,Atingimento %,Receita Ajustada
 1280.91,1165.0,STAFF,CC1,P1,1277.0,SL02,2025-12-01,1,1369.0,1450.31,CO,2025,12,2025-12,2442.0,81.30999999999995,5.939371804236665,105.93937180423667,-991.69
 1118.91,1393.0,STAFF,CC1,P1,1415.0,SL02,2025-12-01,2,1095.0,1292.91,CO,2025,12,2025-12,2808.0,197.91000000000008,18.073972602739733,118.07397260273973,-1515.09
 1156.46,1381.0,STAFF,CC1,P2,1265.0,SL02,2025-11-01,1,1383.53,1408.1,CO,2025,11,2025-11,2646.0,24.569999999999936,1.7758921020866867,101.77589210208669,-1237.9

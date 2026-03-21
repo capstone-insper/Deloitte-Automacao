@@ -196,9 +196,9 @@ def limpar_operacional(df: pd.DataFrame) -> pd.DataFrame:
     Limpeza completa da base operacional (data1.csv.txt).
 
     Colunas esperadas após padronização:
-      ajuste, allowance, funcionario, centro_de_custo, projeto,
-      contingencia, area, mes_ano, id_quinzena,
-      receita_prevista, receita_liquida, sigla_sub_area
+      Ajuste, Allowance, Funcionário, Centro de Custo, Projeto,
+      Contingência, Área, Mês/Ano, ID Quinzena,
+      Receita Prevista, Receita Líquida, Sigla da Subarea
     """
     print("[limpeza] Processando base operacional...")
 
@@ -244,6 +244,30 @@ def limpar_operacional(df: pd.DataFrame) -> pd.DataFrame:
     for col in ["funcionario", "area", "sigla_sub_area", "centro_de_custo", "projeto"]:
         if col in df.columns:
             df[col] = df[col].astype(str).str.strip().str.upper()
+
+    # Renomear colunas para nomes mais legíveis
+    df = df.rename(columns={
+        "ajuste": "Ajuste",
+        "allowance": "Allowance",
+        "funcionario": "Funcionário",
+        "centro_de_custo": "Centro de Custo",
+        "projeto": "Projeto",
+        "contingencia": "Contingência",
+        "area": "Área",
+        "mes_ano": "Mês/Ano",
+        "id_quinzena": "ID Quinzena",
+        "receita_prevista": "Receita Prevista",
+        "receita_liquida": "Receita Líquida",
+        "sigla_sub_area": "Sigla da Subarea",
+        "ano": "Ano",
+        "mes": "Mês",
+        "ano_mes_str": "Ano-Mês",
+        "custo_total": "Custo Total",
+        "desvio_receita": "Desvio Receita",
+        "desvio_pct": "Desvio %",
+        "atingimento_pct": "Atingimento %",
+        "receita_ajustada": "Receita Ajustada",
+    })
 
     print(f"  [ok] base operacional limpa: {df.shape[0]} linhas × {df.shape[1]} colunas")
     return df.reset_index(drop=True)
@@ -333,30 +357,30 @@ def limpar_orcamento(df: pd.DataFrame) -> pd.DataFrame:
 def calcular_metricas_operacional(df: pd.DataFrame) -> pd.DataFrame:
     """
     Adiciona colunas de métricas analíticas à base operacional:
-      - custo_total         = allowance + contingencia
-      - desvio_receita      = receita_liquida − receita_prevista
-      - desvio_pct          = desvio_receita / receita_prevista × 100
-      - atingimento_pct     = receita_liquida / receita_prevista × 100
-      - receita_ajustada    = receita_liquida − allowance − contingencia
+      - Custo Total         = Allowance + Contingência
+      - Desvio Receita      = Receita Líquida − Receita Prevista
+      - Desvio %            = Desvio Receita / Receita Prevista × 100
+      - Atingimento %       = Receita Líquida / Receita Prevista × 100
+      - Receita Ajustada    = Receita Líquida − Allowance − Contingência
     """
     print("[metricas] Calculando métricas derivadas...")
 
-    df["custo_total"] = df["allowance"] + df["contingencia"]
-    df["desvio_receita"] = df["receita_liquida"] - df["receita_prevista"]
+    df["Custo Total"] = df["Allowance"] + df["Contingência"]
+    df["Desvio Receita"] = df["Receita Líquida"] - df["Receita Prevista"]
 
-    df["desvio_pct"] = np.where(
-        df["receita_prevista"] != 0,
-        df["desvio_receita"] / df["receita_prevista"] * 100,
+    df["Desvio %"] = np.where(
+        df["Receita Prevista"] != 0,
+        df["Desvio Receita"] / df["Receita Prevista"] * 100,
         np.nan,
     )
 
-    df["atingimento_pct"] = np.where(
-        df["receita_prevista"] != 0,
-        df["receita_liquida"] / df["receita_prevista"] * 100,
+    df["Atingimento %"] = np.where(
+        df["Receita Prevista"] != 0,
+        df["Receita Líquida"] / df["Receita Prevista"] * 100,
         np.nan,
     )
 
-    df["receita_ajustada"] = df["receita_liquida"] - df["allowance"] - df["contingencia"]
+    df["Receita Ajustada"] = df["Receita Líquida"] - df["Allowance"] - df["Contingência"]
 
     return df
 
@@ -408,25 +432,25 @@ def criar_serie_temporal(df_op: pd.DataFrame, df_orc: pd.DataFrame) -> pd.DataFr
 
     # Agregação operacional por área × mês
     op_mensal = (
-        df_op.groupby(["area", "mes_ano", "ano_mes_str"], as_index=False)
+        df_op.groupby(["Área", "Mês/Ano", "Ano-Mês"], as_index=False)
         .agg(
-            receita_prevista_op=("receita_prevista", "sum"),
-            receita_realizada=("receita_liquida", "sum"),
-            custo_realizado=("custo_total", "sum"),
-            desvio_receita=("desvio_receita", "sum"),
-            n_registros=("receita_liquida", "count"),
+            receita_prevista_op=("Receita Prevista", "sum"),
+            receita_realizada=("Receita Líquida", "sum"),
+            custo_realizado=("Custo Total", "sum"),
+            desvio_receita=("Desvio Receita", "sum"),
+            n_registros=("Receita Líquida", "count"),
         )
     )
 
     # Orçado por área × mês
-    orc_receita = _extrair_orcado_receita(df_orc)
-    orc_custo = _extrair_orcado_custo(df_orc)
-    orc_margem = _extrair_orcado_margem(df_orc)
+    orc_receita = _extrair_orcado_receita(df_orc).rename(columns={"area": "Área", "mes_ano": "Mês/Ano", "ano_mes_str": "Ano-Mês"})
+    orc_custo = _extrair_orcado_custo(df_orc).rename(columns={"area": "Área", "mes_ano": "Mês/Ano", "ano_mes_str": "Ano-Mês"})
+    orc_margem = _extrair_orcado_margem(df_orc).rename(columns={"area": "Área", "mes_ano": "Mês/Ano", "ano_mes_str": "Ano-Mês"})
 
     # Join orçado com realizado (left join a partir do orçamento para exibir todos os meses)
-    serie = orc_receita.merge(orc_custo, on=["area", "mes_ano", "ano_mes_str"], how="outer")
-    serie = serie.merge(orc_margem, on=["area", "mes_ano", "ano_mes_str"], how="outer")
-    serie = serie.merge(op_mensal, on=["area", "mes_ano", "ano_mes_str"], how="left")
+    serie = orc_receita.merge(orc_custo, on=["Área", "Mês/Ano", "Ano-Mês"], how="outer")
+    serie = serie.merge(orc_margem, on=["Área", "Mês/Ano", "Ano-Mês"], how="outer")
+    serie = serie.merge(op_mensal, on=["Área", "Mês/Ano", "Ano-Mês"], how="left")
 
     # Colunas operacionais ficam 0 nos meses sem dados realizados
     for col in ["receita_realizada", "receita_prevista_op", "custo_realizado", "desvio_receita", "n_registros"]:
@@ -440,7 +464,7 @@ def criar_serie_temporal(df_op: pd.DataFrame, df_orc: pd.DataFrame) -> pd.DataFr
         np.nan,
     )
 
-    serie = serie.sort_values(["area", "mes_ano"]).reset_index(drop=True)
+    serie = serie.sort_values(["Área", "Mês/Ano"]).reset_index(drop=True)
     return serie
 
 
@@ -454,27 +478,28 @@ def criar_kpis_executivos(df_op: pd.DataFrame, df_orc: pd.DataFrame) -> pd.DataF
 
     # Totais operacionais por área
     op_area = (
-        df_op.groupby("area", as_index=False)
+        df_op.groupby("Área", as_index=False)
         .agg(
-            receita_prevista_total=("receita_prevista", "sum"),
-            receita_realizada_total=("receita_liquida", "sum"),
-            custo_total_realizado=("custo_total", "sum"),
-            n_registros=("receita_liquida", "count"),
-            atingimento_medio_pct=("atingimento_pct", "mean"),
+            receita_prevista_total=("Receita Prevista", "sum"),
+            receita_realizada_total=("Receita Líquida", "sum"),
+            custo_total_realizado=("Custo Total", "sum"),
+            n_registros=("Receita Líquida", "count"),
+            atingimento_medio_pct=("Atingimento %", "mean"),
         )
     )
 
     # Orçado total por área (soma todos os meses com dados realizados)
     # Consideramos os meses que têm dados operacionais para comparação justa
-    meses_com_dados = df_op["mes_ano"].unique()
+    meses_com_dados = df_op["Mês/Ano"].unique()
     orc_filtrado = df_orc[df_orc["mes_ano"].isin(meses_com_dados)]
     orc_receita_area = (
         _extrair_orcado_receita(orc_filtrado)
         .groupby("area", as_index=False)["orcado_receita"]
         .sum()
+        .rename(columns={"area": "Área"})
     )
 
-    kpis = op_area.merge(orc_receita_area, on="area", how="outer")
+    kpis = op_area.merge(orc_receita_area, on="Área", how="outer")
     kpis["orcado_receita"] = kpis["orcado_receita"].fillna(0)
     kpis["desvio_absoluto"] = kpis["receita_realizada_total"] - kpis["orcado_receita"]
     kpis["desvio_pct"] = np.where(
@@ -496,7 +521,7 @@ def criar_kpis_executivos(df_op: pd.DataFrame, df_orc: pd.DataFrame) -> pd.DataF
 
     # Linha TOTAL
     total = pd.DataFrame([{
-        "area": "TOTAL",
+        "Área": "TOTAL",
         "receita_prevista_total": kpis["receita_prevista_total"].sum(),
         "receita_realizada_total": kpis["receita_realizada_total"].sum(),
         "custo_total_realizado": kpis["custo_total_realizado"].sum(),
@@ -528,16 +553,16 @@ def criar_orcado_vs_realizado_area(df_op: pd.DataFrame, df_orc: pd.DataFrame) ->
     """
     print("[tabelas] Criando orçado vs realizado por área...")
 
-    meses_com_dados = df_op["mes_ano"].unique()
+    meses_com_dados = df_op["Mês/Ano"].unique()
     orc_filtrado = df_orc[df_orc["mes_ano"].isin(meses_com_dados)]
 
-    orc = _extrair_orcado_receita(orc_filtrado).groupby("area", as_index=False)["orcado_receita"].sum()
-    real = df_op.groupby("area", as_index=False).agg(
-        receita_realizada=("receita_liquida", "sum"),
-        receita_prevista_op=("receita_prevista", "sum"),
+    orc = _extrair_orcado_receita(orc_filtrado).groupby("area", as_index=False)["orcado_receita"].sum().rename(columns={"area": "Área"})
+    real = df_op.groupby("Área", as_index=False).agg(
+        receita_realizada=("Receita Líquida", "sum"),
+        receita_prevista_op=("Receita Prevista", "sum"),
     )
 
-    tab = orc.merge(real, on="area", how="outer").fillna(0)
+    tab = orc.merge(real, on="Área", how="outer").fillna(0)
     tab["desvio_absoluto"] = tab["receita_realizada"] - tab["orcado_receita"]
     tab["desvio_pct"] = np.where(
         tab["orcado_receita"] != 0,
@@ -549,7 +574,7 @@ def criar_orcado_vs_realizado_area(df_op: pd.DataFrame, df_orc: pd.DataFrame) ->
         tab["receita_realizada"] / tab["orcado_receita"] * 100,
         np.nan,
     )
-    return tab.sort_values("area").reset_index(drop=True)
+    return tab.sort_values("Área").reset_index(drop=True)
 
 
 def criar_receita_por_projeto(df_op: pd.DataFrame) -> pd.DataFrame:
@@ -560,14 +585,14 @@ def criar_receita_por_projeto(df_op: pd.DataFrame) -> pd.DataFrame:
     print("[tabelas] Criando análise por projeto...")
 
     tab = (
-        df_op.groupby(["projeto", "area", "sigla_sub_area"] if "sigla_sub_area" in df_op.columns else ["projeto", "area"], as_index=False)
+        df_op.groupby(["Projeto", "Área", "Sigla da Subarea"] if "Sigla da Subarea" in df_op.columns else ["Projeto", "Área"], as_index=False)
         .agg(
-            receita_prevista_sum=("receita_prevista", "sum"),
-            receita_realizada_sum=("receita_liquida", "sum"),
-            desvio_sum=("desvio_receita", "sum"),
-            custo_total_sum=("custo_total", "sum"),
-            atingimento_medio_pct=("atingimento_pct", "mean"),
-            n_quinzenas=("id_quinzena", "count"),
+            receita_prevista_sum=("Receita Prevista", "sum"),
+            receita_realizada_sum=("Receita Líquida", "sum"),
+            desvio_sum=("Desvio Receita", "sum"),
+            custo_total_sum=("Custo Total", "sum"),
+            atingimento_medio_pct=("Atingimento %", "mean"),
+            n_quinzenas=("ID Quinzena", "count"),
         )
     )
 
@@ -590,19 +615,19 @@ def criar_receita_por_subarea(df_op: pd.DataFrame) -> pd.DataFrame:
     """
     print("[tabelas] Criando análise por sub-área...")
 
-    if "sigla_sub_area" not in df_op.columns:
-        print("  [aviso] coluna sigla_sub_area não encontrada — output 07 vazio")
+    if "Sigla da Subarea" not in df_op.columns:
+        print("  [aviso] coluna Sigla da Subarea não encontrada — output 07 vazio")
         return pd.DataFrame()
 
     tab = (
-        df_op.groupby("sigla_sub_area", as_index=False)
+        df_op.groupby("Sigla da Subarea", as_index=False)
         .agg(
-            receita_prevista_sum=("receita_prevista", "sum"),
-            receita_realizada_sum=("receita_liquida", "sum"),
-            desvio_sum=("desvio_receita", "sum"),
-            custo_total_sum=("custo_total", "sum"),
-            atingimento_medio_pct=("atingimento_pct", "mean"),
-            n_registros=("receita_liquida", "count"),
+            receita_prevista_sum=("Receita Prevista", "sum"),
+            receita_realizada_sum=("Receita Líquida", "sum"),
+            desvio_sum=("Desvio Receita", "sum"),
+            custo_total_sum=("Custo Total", "sum"),
+            atingimento_medio_pct=("Atingimento %", "mean"),
+            n_registros=("Receita Líquida", "count"),
         )
     )
 
@@ -658,7 +683,7 @@ def criar_ranking_desvios(df_op: pd.DataFrame) -> pd.DataFrame:
     """
     print("[tabelas] Criando ranking de desvios por projeto...")
 
-    dims = [c for c in ["projeto", "area", "sigla_sub_area"] if c in df_op.columns]
+    dims = [c for c in ["Projeto", "Área", "Sigla da Subarea"] if c in df_op.columns]
 
     tab = (
         df_op.groupby(dims, as_index=False)
@@ -698,19 +723,19 @@ def criar_participacao_percentual(df_op: pd.DataFrame) -> dict[str, pd.DataFrame
         return df_grp[["dimensao", "valor", "participacao_pct", "participacao_acumulada_pct"]]
 
     por_area = _tabela_pareto(
-        df_op.groupby("area", as_index=False).agg(receita_realizada=("receita_liquida", "sum")),
-        "area",
+        df_op.groupby("Área", as_index=False).agg(receita_realizada=("Receita Líquida", "sum")),
+        "Área",
     )
 
     por_projeto = _tabela_pareto(
-        df_op.groupby("projeto", as_index=False).agg(receita_realizada=("receita_liquida", "sum")),
-        "projeto",
+        df_op.groupby("Projeto", as_index=False).agg(receita_realizada=("Receita Líquida", "sum")),
+        "Projeto",
     )
 
-    if "sigla_sub_area" in df_op.columns:
+    if "Sigla da Subarea" in df_op.columns:
         por_subarea = _tabela_pareto(
-            df_op.groupby("sigla_sub_area", as_index=False).agg(receita_realizada=("receita_liquida", "sum")),
-            "sigla_sub_area",
+            df_op.groupby("Sigla da Subarea", as_index=False).agg(receita_realizada=("Receita Líquida", "sum")),
+            "Sigla da Subarea",
         )
     else:
         por_subarea = pd.DataFrame()
@@ -789,17 +814,18 @@ def criar_janelas_temporais(df_op: pd.DataFrame, df_orc: pd.DataFrame) -> pd.Dat
             _extrair_orcado_receita(orc_j)
             .groupby("area", as_index=False)["orcado_receita"]
             .sum()
+            .rename(columns={"area": "Área"})
         )
 
         # Agrega por área
-        op_area = df_j.groupby("area", as_index=False).agg(
-            receita_realizada=("receita_liquida", "sum"),
-            receita_prevista=("receita_prevista", "sum"),
-            custo_total=("custo_total", "sum"),
-            n_registros=("receita_liquida", "count"),
+        op_area = df_j.groupby("Área", as_index=False).agg(
+            receita_realizada=("Receita Líquida", "sum"),
+            receita_prevista=("Receita Prevista", "sum"),
+            custo_total=("Custo Total", "sum"),
+            n_registros=("Receita Líquida", "count"),
         )
 
-        tab = op_area.merge(orc_receita, on="area", how="left")
+        tab = op_area.merge(orc_receita, on="Área", how="left")
         tab["orcado_receita"] = tab["orcado_receita"].fillna(0)
 
         tab["desvio_vs_orcado"] = tab["receita_realizada"] - tab["orcado_receita"]
