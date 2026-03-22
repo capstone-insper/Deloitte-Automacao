@@ -1,6 +1,6 @@
 """
-Dashboard Executivo — Paraná
-============================
+Dashboard Executivo — Delloite
+==============================
 Lê diretamente os arquivos .txt da pasta entrada/ e gera
 um dashboard executivo interativo sem dependência de ETL prévio.
 
@@ -26,7 +26,7 @@ warnings.filterwarnings("ignore")
 # ─────────────────────────────────────────────────────────────────────────────
 
 st.set_page_config(
-    page_title="Dashboard Executivo — Paraná",
+    page_title="Dashboard Executivo — Delloite",
     page_icon="📊",
     layout="wide",
 )
@@ -331,13 +331,30 @@ def filtros(df: pd.DataFrame, com_area=False, com_projeto=False,
     if com_area:
         opts = _vals(df, "area")
         with cols[idx]:
-            areas = st.multiselect("Área", opts, default=opts, key=f"fa_{sufixo}")
+            areas = st.multiselect(
+                "Área", opts, default=opts, key=f"fa_{sufixo}",
+                help=(
+                    "**Área organizacional** responsável pelo recurso ou receita.\n\n"
+                    "Selecione uma ou mais áreas para filtrar todos os gráficos e "
+                    "indicadores desta aba. Remover uma área exclui completamente "
+                    "sua receita, custo e atingimento dos cálculos."
+                ),
+            )
         idx += 1
 
     if com_projeto:
         opts = _vals(df, "projeto")
         with cols[idx]:
-            projetos = st.multiselect("Projeto", opts, default=opts, key=f"fp_{sufixo}")
+            projetos = st.multiselect(
+                "Projeto", opts, default=opts, key=f"fp_{sufixo}",
+                help=(
+                    "**Projeto** ao qual a receita, allowance ou contingência se "
+                    "refere.\n\n"
+                    "Filtra registros pelo código/nome do projeto. Útil para isolar "
+                    "a performance de um projeto específico sem alterar os demais "
+                    "filtros."
+                ),
+            )
         idx += 1
 
     if com_subarea:
@@ -453,7 +470,7 @@ if df_op.empty:
 # TÍTULO
 # ─────────────────────────────────────────────────────────────────────────────
 
-st.title("📊 Dashboard Executivo — Paraná")
+st.title("📊 Dashboard Executivo — Delloite")
 st.markdown("---")
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -461,7 +478,7 @@ st.markdown("---")
 # ─────────────────────────────────────────────────────────────────────────────
 
 (tab_resumo, tab_kpi, tab_temporal,
- tab_area, tab_proj, tab_desvios, tab_dados) = st.tabs([
+ tab_area, tab_proj, tab_desvios, tab_dados, tab_dicionario) = st.tabs([
     "📋 Resumo",
     "📌 KPIs Executivos",
     "📅 Série Temporal",
@@ -469,6 +486,7 @@ st.markdown("---")
     "📁 Projetos",
     "⚠️ Desvios & Alertas",
     "🗃️ Dados",
+    "📖 Dicionário",
 ])
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1150,3 +1168,177 @@ with tab_dados:
         file_name="base_operacional_filtrada.csv",
         mime="text/csv",
     )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ABA 8 — DICIONÁRIO DE DADOS
+# ══════════════════════════════════════════════════════════════════════════════
+
+with tab_dicionario:
+    sec("Dicionário de Dados — Arquivo 1  (Base Operacional: Funcionário / Projeto / Quinzena)")
+    st.caption(
+        "Granularidade: uma linha por funcionário × projeto × quinzena × mês. "
+        "É a base principal usada em todos os gráficos do dashboard."
+    )
+
+    dic_arq1 = pd.DataFrame([
+        {
+            "Campo":       "Ajuste",
+            "Tipo":        "Texto",
+            "Obrigatório": "Não",
+            "Descrição":   (
+                "Forma de reconhecer uma receita no projeto que não vem por débito de horas. "
+                "Campo opcional — recomenda-se manter uma lista padronizada de justificativas."
+            ),
+        },
+        {
+            "Campo":       "Allowance",
+            "Tipo":        "Numérico (R$)",
+            "Obrigatório": "Sim",
+            "Descrição":   (
+                "Lançamentos contábeis que refletem a receita que será estornada no mês seguinte. "
+                "Deve ser ≥ 0 e na mesma moeda que Receita Prevista."
+            ),
+        },
+        {
+            "Campo":       "Funcionário",
+            "Tipo":        "Texto",
+            "Obrigatório": "Sim",
+            "Descrição":   "Identificação do tipo de colaborador relacionado à linha de receita/projeto.",
+        },
+        {
+            "Campo":       "Centro de Custo",
+            "Tipo":        "Texto (código)",
+            "Obrigatório": "Sim",
+            "Descrição":   "Centro de custo responsável pelo lançamento, alocação ou receita associada.",
+        },
+        {
+            "Campo":       "Projeto",
+            "Tipo":        "Texto",
+            "Obrigatório": "Sim",
+            "Descrição":   (
+                "Identificação do projeto ao qual a receita, allowance ou contingência se refere. "
+                "Recomenda-se usar um código único de projeto."
+            ),
+        },
+        {
+            "Campo":       "Contingência",
+            "Tipo":        "Numérico (R$)",
+            "Obrigatório": "Sim",
+            "Descrição":   (
+                "Lançamentos contábeis que refletem a receita que será estornada no mês seguinte. "
+                "Deve ser ≥ 0."
+            ),
+        },
+        {
+            "Campo":       "Área",
+            "Tipo":        "Texto",
+            "Obrigatório": "Sim",
+            "Descrição":   "Área organizacional responsável pelo recurso ou receita.",
+        },
+        {
+            "Campo":       "Mês/Ano",
+            "Tipo":        "Data (período mensal)",
+            "Obrigatório": "Sim",
+            "Descrição":   "Período de competência mensal da receita. Formato recomendado: YYYY-MM.",
+        },
+        {
+            "Campo":       "ID Quinzena",
+            "Tipo":        "Inteiro",
+            "Obrigatório": "Sim",
+            "Descrição":   "Identifica se os valores correspondem à 1ª ou 2ª quinzena do mês. Domínio fixo: {1, 2}.",
+        },
+        {
+            "Campo":       "Receita Prevista",
+            "Tipo":        "Numérico (R$)",
+            "Obrigatório": "Sim",
+            "Descrição":   "Receita orçada ou estimada para o período e contexto da linha. Deve ser ≥ 0.",
+        },
+        {
+            "Campo":       "Receita Líquida",
+            "Tipo":        "Numérico (R$)",
+            "Obrigatório": "Sim",
+            "Descrição":   (
+                "Receita realizada após deduções, ajustes ou descontos. "
+                "Geralmente menor ou igual à Receita Prevista."
+            ),
+        },
+        {
+            "Campo":       "Sigla Subárea",
+            "Tipo":        "Texto",
+            "Obrigatório": "Não",
+            "Descrição":   "Sigla da subárea dentro da área principal.",
+        },
+    ])
+    tbl(dic_arq1)
+
+    st.markdown("")
+    sec("Dicionário de Dados — Arquivo 2  (Orçamento por Área / Tipo / Mês)")
+    st.caption(
+        "Granularidade: uma linha por área × tipo de valor. "
+        "As colunas de período (jun/25 a mai/26) representam o horizonte orçamentário anual."
+    )
+
+    dic_arq2 = pd.DataFrame([
+        {
+            "Campo":       "Área",
+            "Tipo":        "Texto",
+            "Obrigatório": "Sim",
+            "Descrição":   "Área de negócio responsável pelo planejamento dos valores orçamentários.",
+        },
+        {
+            "Campo":       "Type / Tipo",
+            "Tipo":        "Texto (domínio controlado)",
+            "Obrigatório": "Sim",
+            "Descrição":   (
+                "Classificação do tipo de valor lançado para aquele período "
+                "(ex.: Receita Prevista, Allowance, Contingência)."
+            ),
+        },
+        {
+            "Campo":       "Colunas de Período  (jun/25 … mai/26)",
+            "Tipo":        "Numérico (R$)",
+            "Obrigatório": "Sim",
+            "Descrição":   (
+                "Cada coluna representa um mês do horizonte orçamentário anual. "
+                "Valores devem ser ≥ 0. Internamente são convertidos para o formato YYYY-MM."
+            ),
+        },
+    ])
+    tbl(dic_arq2)
+
+    st.markdown("")
+    sec("Métricas Calculadas (campos derivados usados no dashboard)")
+    dic_calc = pd.DataFrame([
+        {
+            "Métrica":   "Desvio Absoluto",
+            "Fórmula":   FORMULA["desvio_abs"],
+            "Descrição": "Diferença em R$ entre o que foi realizado e o que estava previsto.",
+        },
+        {
+            "Métrica":   "Desvio (%)",
+            "Fórmula":   FORMULA["desvio_pct"],
+            "Descrição": "Variação percentual da receita realizada em relação à prevista.",
+        },
+        {
+            "Métrica":   "Atingimento (%)",
+            "Fórmula":   FORMULA["atingimento_pct"],
+            "Descrição": "Percentual de execução da receita. Meta de referência: 100%.",
+        },
+        {
+            "Métrica":   "Receita Ajustada",
+            "Fórmula":   FORMULA["receita_ajustada"],
+            "Descrição": "Receita Líquida deduzida de allowances e contingências.",
+        },
+        {
+            "Métrica":   "Custo Total",
+            "Fórmula":   FORMULA["custo_total"],
+            "Descrição": "Soma dos lançamentos de allowance e contingência.",
+        },
+        {
+            "Métrica":   "Margem (%)",
+            "Fórmula":   FORMULA["margem_pct"],
+            "Descrição": "Margem percentual em relação à receita orçada.",
+        },
+    ])
+    tbl(dic_calc)
