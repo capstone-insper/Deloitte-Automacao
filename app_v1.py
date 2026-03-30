@@ -5,7 +5,9 @@ Lê diretamente os arquivos .txt da pasta entrada/ e gera
 um dashboard executivo interativo sem dependência de ETL prévio.
 
 Para rodar:
-    streamlit run app_parana.py
+    streamlit run app_v1.py
+    ou
+    python -m streamlit run app_v1.py
 """
 
 import re
@@ -470,7 +472,7 @@ if df_op.empty:
 # TÍTULO
 # ─────────────────────────────────────────────────────────────────────────────
 
-st.title("📊 Dashboard Executivo — Delloite")
+st.title("Dashboard Executivo — Delloite")
 st.markdown("---")
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -479,14 +481,14 @@ st.markdown("---")
 
 (tab_resumo, tab_kpi, tab_temporal,
  tab_area, tab_proj, tab_desvios, tab_dados, tab_dicionario) = st.tabs([
-    "📋 Resumo",
-    "📌 KPIs Executivos",
-    "📅 Série Temporal",
-    "🏢 Áreas",
-    "📁 Projetos",
-    "⚠️ Desvios & Alertas",
-    "🗃️ Dados",
-    "📖 Dicionário",
+    "Resumo",
+    "KPIs Executivos",
+    "Série Temporal",
+    "Áreas",
+    "Projetos",
+    "Desvios & Alertas",
+    "Dados",
+    "Dicionário",
 ])
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1080,7 +1082,7 @@ with tab_desvios:
             for _, row in alertas.iterrows():
                 css_cls = "alert-danger" if row["atingimento_pct"] < 70 else "alert-warn"
                 st.markdown(
-                    f'<div class="{css_cls}">🔴 <b>{row["projeto"]}</b> — '
+                    f'<div class="{css_cls}"> <b>{row["projeto"]}</b> — '
                     f'Atingimento: <b>{row["atingimento_pct"]:.1f}%</b> | '
                     f'Desvio: <b>{fmt_brl(row["desvio_abs"])}</b></div>',
                     unsafe_allow_html=True,
@@ -1163,7 +1165,7 @@ with tab_dados:
 
     csv = df_vis.to_csv(index=False).encode("utf-8")
     st.download_button(
-        label="⬇️ Baixar CSV filtrado",
+        label="Baixar CSV filtrado",
         data=csv,
         file_name="base_operacional_filtrada.csv",
         mime="text/csv",
