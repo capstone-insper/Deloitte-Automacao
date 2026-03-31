@@ -29,7 +29,6 @@ warnings.filterwarnings("ignore")
 
 st.set_page_config(
     page_title="Dashboard Executivo — Delloite",
-    page_icon="📊",
     layout="wide",
 )
 
@@ -604,6 +603,14 @@ with tab_resumo:
         fig_sp.update_layout(height=250, margin=dict(t=10, b=30))
         st.plotly_chart(fig_sp, use_container_width=True, key="res_sparkline")
 
+    st.download_button(
+        label="Baixar CSV",
+        data=df_res.to_csv(index=False).encode("utf-8"),
+        file_name="resumo.csv",
+        mime="text/csv",
+        key="dl_res",
+    )
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ABA 2 — KPIs EXECUTIVOS
@@ -686,6 +693,14 @@ with tab_kpi:
                              annotation_text="Meta 100%")
             fig_at.update_layout(height=340, margin=dict(t=10, b=30))
             st.plotly_chart(fig_at, use_container_width=True, key="kpi_ating_area")
+
+    st.download_button(
+        label="Baixar CSV",
+        data=df_kp.to_csv(index=False).encode("utf-8"),
+        file_name="kpis_executivos.csv",
+        mime="text/csv",
+        key="dl_kpi",
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -810,6 +825,14 @@ with tab_temporal:
                             annotation_text="Meta 100%")
         fig_at_ts.update_layout(height=260, margin=dict(t=10, b=30))
         st.plotly_chart(fig_at_ts, use_container_width=True, key="ts_ating")
+
+    st.download_button(
+        label="Baixar CSV",
+        data=df_ts.to_csv(index=False).encode("utf-8"),
+        file_name="serie_temporal.csv",
+        mime="text/csv",
+        key="dl_ts",
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -961,6 +984,14 @@ with tab_area:
         )
         tbl(tbl_am)
 
+    st.download_button(
+        label="Baixar CSV",
+        data=df_ar.to_csv(index=False).encode("utf-8"),
+        file_name="areas.csv",
+        mime="text/csv",
+        key="dl_ar",
+    )
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ABA 5 — PROJETOS
@@ -1037,6 +1068,14 @@ with tab_proj:
 
         sec("Métricas por Projeto")
         tbl(ag_proj.sort_values("receita_liquida", ascending=False))
+
+    st.download_button(
+        label="Baixar CSV",
+        data=df_pr.to_csv(index=False).encode("utf-8"),
+        file_name="projetos.csv",
+        mime="text/csv",
+        key="dl_pr",
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1123,6 +1162,14 @@ with tab_desvios:
             )
             fig_heat.update_layout(height=380, margin=dict(t=10, b=30))
             st.plotly_chart(fig_heat, use_container_width=True, key="dv_heatmap")
+
+    st.download_button(
+        label="Baixar CSV",
+        data=df_dv.to_csv(index=False).encode("utf-8"),
+        file_name="desvios_alertas.csv",
+        mime="text/csv",
+        key="dl_dv",
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
