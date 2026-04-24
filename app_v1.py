@@ -156,6 +156,9 @@ COL_CFG: dict[str, st.column_config.Column] = {
 def tbl(df: pd.DataFrame, **kwargs):
     """Exibe dataframe com column_config automático para todas as colunas conhecidas."""
     cfg = {c: COL_CFG[c] for c in df.columns if c in COL_CFG}
+    for c in df.columns:
+        if c not in cfg:
+            cfg[c] = st.column_config.TextColumn(rotulo_coluna(c))
     st.dataframe(df, use_container_width=True, hide_index=True,
                  column_config=cfg, **kwargs)
 
@@ -170,6 +173,26 @@ def normalizar_coluna(nome: str) -> str:
     nome = re.sub(r"[^a-zA-Z0-9\s_]", " ", nome)
     nome = re.sub(r"\s+", "_", nome.strip()).lower()
     return nome
+
+
+def rotulo_coluna(nome: str) -> str:
+    nome = str(nome).strip()
+    if nome in NOMES_COL:
+        return NOMES_COL[nome]
+    return " ".join(word.capitalize() for word in nome.split("_"))
+
+
+def rotulos_para(colunas: list[str]) -> dict[str, str]:
+    return {c: rotulo_coluna(c) for c in colunas}
+
+
+def rotular_fig(fig):
+    for trace in fig.data:
+        if trace.name in NOMES_COL:
+            trace.name = NOMES_COL[trace.name]
+        if getattr(trace, "legendgroup", None) in NOMES_COL:
+            trace.legendgroup = NOMES_COL[trace.legendgroup]
+    return fig
 
 
 def limpar_valor_brl(val) -> float:
@@ -604,9 +627,11 @@ with tab_resumo:
                 "receita_liquida":  COR_REALIZADO,
                 "receita_prevista": COR_ORCADO,
             },
-            labels={"value": "R$", "variable": "Série"},
+            labels={**rotulos_para(["receita_liquida", "receita_prevista"]),
+                    "value": "R$", "variable": "Série"},
         )
         fig_sp.update_layout(height=250, margin=dict(t=10, b=30))
+        rotular_fig(fig_sp)
         st.plotly_chart(fig_sp, use_container_width=True, key="res_sparkline")
 
     st.download_button(
@@ -672,19 +697,22 @@ with tab_kpi:
         col_a, col_b = st.columns(2)
         with col_a:
             sec("Receita vs Custo por Área")
+            df_bar = kpi_area.melt(id_vars="area",
+                                     value_vars=["receita_liquida", "receita_prevista", "custo_total"],
+                                     var_name="Métrica", value_name="Valor")
+            df_bar["Métrica"] = df_bar["Métrica"].map(rotulo_coluna)
             fig_bar = px.bar(
-                kpi_area.melt(id_vars="area",
-                              value_vars=["receita_liquida", "receita_prevista", "custo_total"],
-                              var_name="Métrica", value_name="Valor"),
+                df_bar,
                 x="area", y="Valor", color="Métrica", barmode="group",
                 color_discrete_map={
-                    "receita_liquida":  COR_REALIZADO,
-                    "receita_prevista": COR_ORCADO,
-                    "custo_total":      "#FF9800",
+                    rotulo_coluna("receita_liquida"):  COR_REALIZADO,
+                    rotulo_coluna("receita_prevista"): COR_ORCADO,
+                    rotulo_coluna("custo_total"):      "#FF9800",
                 },
                 labels={"Valor": "R$", "area": "Área"},
             )
             fig_bar.update_layout(height=340, margin=dict(t=10, b=30))
+            rotular_fig(fig_bar)
             st.plotly_chart(fig_bar, use_container_width=True, key="kpi_bar_area")
 
         with col_b:
@@ -698,7 +726,7 @@ with tab_kpi:
             fig_at.add_hline(y=100, line_dash="dash", line_color=COR_DESVIO_NEG,
                              annotation_text="Meta 100%")
             fig_at.update_layout(height=340, margin=dict(t=10, b=30))
-            st.plotly_chart(fig_at, use_container_width=True, key="kpi_ating_area")
+        rotular_fig(fig_at)
 
     st.download_button(
         label="Baixar CSV",
@@ -790,9 +818,10 @@ with tab_temporal:
                 "receita_prevista": COR_ORCADO,
                 "orcado_receita":   "#9B59B6",
             },
-            labels={"value": "R$", "variable": "Série"},
+            labels={**rotulos_para(y_linhas), "value": "R$", "variable": "Série"},
         )
         fig_linha.update_layout(height=320, margin=dict(t=10, b=30))
+        rotular_fig(fig_linha)
         st.plotly_chart(fig_linha, use_container_width=True, key="ts_linha")
 
         col_dv, col_ct = st.columns(2)
@@ -870,20 +899,22 @@ with tab_area:
 
         col_b1, col_b2 = st.columns(2)
         with col_b1:
+            df_ar_bar = ag_area.melt(id_vars="area", value_vars=y_bar,
+                                     var_name="Métrica", value_name="Valor")
+            df_ar_bar["Métrica"] = df_ar_bar["Métrica"].map(rotulo_coluna)
             fig_ar = px.bar(
-                ag_area.melt(id_vars="area", value_vars=y_bar,
-                             var_name="Métrica", value_name="Valor"),
+                df_ar_bar,
                 x="area", y="Valor", color="Métrica", barmode="group",
                 color_discrete_map={
-                    "receita_liquida":  COR_REALIZADO,
-                    "receita_prevista": COR_ORCADO,
-                    "custo_total":      "#FF9800",
-                    "orcado_budget":    "#9B59B6",
+                    rotulo_coluna("receita_liquida"):  COR_REALIZADO,
+                    rotulo_coluna("receita_prevista"): COR_ORCADO,
+                    rotulo_coluna("custo_total"):      "#FF9800",
+                    rotulo_coluna("orcado_budget"):    "#9B59B6",
                 },
                 labels={"Valor": "R$", "area": "Área"},
             )
             fig_ar.update_layout(height=340, margin=dict(t=10, b=30))
-            st.plotly_chart(fig_ar, use_container_width=True, key="ar_orcado_real")
+        rotular_fig(fig_ar)
 
         with col_b2:
             sec("Atingimento por Área (%)")
@@ -895,6 +926,7 @@ with tab_area:
             fig_at_ar.add_hline(y=100, line_dash="dash", line_color=COR_DESVIO_NEG,
                                 annotation_text="Meta 100%")
             fig_at_ar.update_layout(height=340, margin=dict(t=10, b=30))
+            rotular_fig(fig_at_ar)
             st.plotly_chart(fig_at_ar, use_container_width=True, key="ar_ating")
 
         tbl(ag_area)
@@ -1141,13 +1173,16 @@ with tab_desvios:
             allowance   =("allowance",    "sum"),
             contingencia=("contingencia", "sum"),
         ).reset_index()
+        df_custo = ag_custo.melt(id_vars="area", var_name="Tipo", value_name="Valor")
+        df_custo["Tipo"] = df_custo["Tipo"].map(rotulo_coluna)
         fig_custo = px.bar(
-            ag_custo.melt(id_vars="area", var_name="Tipo", value_name="Valor"),
+            df_custo,
             x="area", y="Valor", color="Tipo", barmode="stack",
-            color_discrete_map={"allowance": "#4472C4", "contingencia": "#FF9800"},
+            color_discrete_map={rotulo_coluna("allowance"): "#4472C4", rotulo_coluna("contingencia"): "#FF9800"},
             labels={"Valor": "R$", "area": "Área"},
         )
         fig_custo.update_layout(height=300, margin=dict(t=10, b=30))
+        rotular_fig(fig_custo)
         st.plotly_chart(fig_custo, use_container_width=True, key="dv_custo")
 
     if all(c in df_dv.columns for c in ["projeto", "mes_ref", "atingimento_pct"]):
@@ -1195,7 +1230,7 @@ with tab_dados:
 
     todas_cols = df_dd.columns.tolist()
     # Nomes legíveis para o seletor
-    nomes_legiv = {c: NOMES_COL.get(c, c) for c in todas_cols}
+    nomes_legiv = {c: rotulo_coluna(c) for c in todas_cols}
     cols_sel_legiv = st.multiselect(
         "Colunas visíveis",
         options=list(nomes_legiv.values()),
@@ -1213,7 +1248,7 @@ with tab_dados:
     num_cols = df_dd.select_dtypes(include="number").columns.tolist()
     if num_cols:
         desc = df_dd[num_cols].describe().T.round(2)
-        desc.index = [NOMES_COL.get(i, i) for i in desc.index]
+        desc.index = [rotulo_coluna(i) for i in desc.index]
         st.dataframe(desc, use_container_width=True)
 
     csv = df_vis.to_csv(index=False).encode("utf-8")

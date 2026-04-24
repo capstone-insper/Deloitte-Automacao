@@ -1,5 +1,21 @@
 [
   {
+    "id": "conv_20260423213030485873",
+    "title": "Quais KPIs estão abaixo da meta e por quan…",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Quais KPIs estão abaixo da meta e por quanto?\n\n"
+      },
+      {
+        "role": "assistant",
+        "content": "Para identificar os KPIs que estão abaixo da meta, precisamos entender o que é considerado uma \"meta\" no contexto do projeto. A meta de referência é 100% de atingimento, o que significa que a receita líquida deve ser igual ou superior à receita prevista.\n\nCom base nos dados consolidados e por área, podemos observar os seguintes KPIs:\n\n1. **Atingimento (%)**: A média geral é de 104,4%, o que está acima da meta. No entanto, precisamos analisar os dados por área e sub-área para identificar possíveis desvios.\n\n2. **Por Área**:\n   - **Área SL01**: Atingimento de 102,9%, que está acima da meta.\n   - **Área SL02**: Atingimento de 104,9%, que também está acima da meta.\n\n3. **Por Sub Área**:\n   - **Sub área AI**: Desvio de 1,9%, o que está acima da meta.\n   - **Sub área CO**: Desvio de 4,9%, acima da meta.\n   - **Sub área En**: Desvio de 6,2%, acima da meta.\n\n4. **Por Mês**:\n   - **Nov/2025**: Desvio de 2,4%, acima da meta.\n   - **Dec/2025**: Desvio de 2,8%, acima da meta.\n   - **Jan/2026**: Desvio de 20,9%, significativamente acima da meta.\n\nConsiderando esses dados, não há KPIs de atingimento abaixo da meta de 100% nos conjuntos de dados fornecidos. Todos os desvios apresentados estão indicando um desempenho acima das expectativas, com none dos KPIs listados apresentando um desempenho abaixo da meta."
+      }
+    ],
+    "kpis": [],
+    "created_at": "2026-04-23T21:30:30.485873"
+  },
+  {
     "id": "conv_20260423212525270570",
     "title": "me resuma o dashboard",
     "messages": [
@@ -10,6 +26,14 @@
       {
         "role": "assistant",
         "content": "O dashboard apresenta um resumo de indicadores financeiros e de desempenho para a área de AI & Data da Deloitte. Aqui estão os principais pontos:\n\n* **Receita Líquida**: R$30.298, com uma média de R$1.317 por registro.\n* **Atingimento**: 104,4% da receita prevista, com um desvio positivo de R$1.035.\n* **Receita Ajustada**: R$-28.621, após dedução de allowance e contingência.\n* **Desempenho por Área**:\n + SL01: R$20.776 de receita líquida, com atingimento de 102,9%.\n + SL02: R$9.522 de receita líquida, com atingimento de 104,9%.\n* **Desempenho por Sub Área**:\n + AI: R$15.694 de receita líquida, com desvio de 1,9%.\n + CO: R$9.522 de receita líquida, com desvio de 4,9%.\n + En: R$5.083 de receita líquida, com desvio de 6,2%.\n* **Top 5 Projetos**: P10, P2, P3, P9 e P1, com receitas líquidas de R$5.083, R$3.790, R$2.988, R$2.806 e R$2.743, respectivamente.\n\nEsses indicadores sugerem que a área de AI & Data está apresentando um desempenho geralmente positivo, com atingimento acima da meta e alguns projetos destacados em termos de receita líquida. No entanto, é importante analisar os dados mais detalhadamente para identificar oportunidades de melhoria."
+      },
+      {
+        "role": "user",
+        "content": "Qual área teve o maior desvio entre orçado e realizado?\n"
+      },
+      {
+        "role": "assistant",
+        "content": "De acordo com os dados fornecidos, a Área SL02 teve o maior desvio percentual entre o orçado e o realizado, com um desvio de 4,9%. Isso significa que a receita líquida realizada pela Área SL02 foi 4,9% maior do que a receita prevista.\n\nAqui estão os dados detalhados:\n\n* Área SL01: desvio de 2,9%\n* Área SL02: desvio de 4,9%\n\nPortanto, a Área SL02 teve o maior desvio entre o orçado e o realizado."
       }
     ],
     "kpis": [],
