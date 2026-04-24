@@ -1,0 +1,42 @@
+[
+  {
+    "id": "conv_20260423212525270570",
+    "title": "me resuma o dashboard",
+    "messages": [
+      {
+        "role": "user",
+        "content": "me resuma o dashboard"
+      },
+      {
+        "role": "assistant",
+        "content": "O dashboard apresenta um resumo de indicadores financeiros e de desempenho para a área de AI & Data da Deloitte. Aqui estão os principais pontos:\n\n* **Receita Líquida**: R$30.298, com uma média de R$1.317 por registro.\n* **Atingimento**: 104,4% da receita prevista, com um desvio positivo de R$1.035.\n* **Receita Ajustada**: R$-28.621, após dedução de allowance e contingência.\n* **Desempenho por Área**:\n + SL01: R$20.776 de receita líquida, com atingimento de 102,9%.\n + SL02: R$9.522 de receita líquida, com atingimento de 104,9%.\n* **Desempenho por Sub Área**:\n + AI: R$15.694 de receita líquida, com desvio de 1,9%.\n + CO: R$9.522 de receita líquida, com desvio de 4,9%.\n + En: R$5.083 de receita líquida, com desvio de 6,2%.\n* **Top 5 Projetos**: P10, P2, P3, P9 e P1, com receitas líquidas de R$5.083, R$3.790, R$2.988, R$2.806 e R$2.743, respectivamente.\n\nEsses indicadores sugerem que a área de AI & Data está apresentando um desempenho geralmente positivo, com atingimento acima da meta e alguns projetos destacados em termos de receita líquida. No entanto, é importante analisar os dados mais detalhadamente para identificar oportunidades de melhoria."
+      }
+    ],
+    "kpis": [],
+    "created_at": "2026-04-23T21:25:25.270570"
+  },
+  {
+    "id": "conv_20260423212343657915",
+    "title": "Qual o desvio percentual de SL01?",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Qual o desvio percentual de SL01?"
+      },
+      {
+        "role": "assistant",
+        "content": "O desvio percentual da área SL01 é de 2,9%. Isso significa que a receita líquida (R$20,776) está 2,9% acima da receita prevista (R$20,182)."
+      },
+      {
+        "role": "user",
+        "content": "o que é allowance"
+      },
+      {
+        "role": "assistant",
+        "content": "O allowance (também conhecido como \"lançamento contábil a ser estornado\") é um valor que foi inicialmente reconhecido como receita, mas que será estornado (ou seja, revertido) no mês seguinte.\n\nEm outras palavras, é um valor que foi registrado como receita, mas que não é efetivamente uma receita permanente, pois será cancelado ou revertido em um período futuro.\n\nNo contexto do projeto, o allowance é um campo que registra esses valores, que são posteriormente subtraídos da receita líquida para calcular a receita ajustada."
+      }
+    ],
+    "kpis": [],
+    "created_at": "2026-04-23T21:23:43.657915"
+  }
+]

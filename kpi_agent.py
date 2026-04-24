@@ -7,19 +7,23 @@ Usa Groq (gratuito) com o modelo llama-3.3-70b-versatile.
 Variável de ambiente obrigatória (defina no .env):
     GROQ_API_KEY=gsk_sua-chave-aqui
 
-Obter chave gratuita em: https://console.groq.com
+Histórico salvo em: historico_chat.json (mesma pasta do app_v1.py)
 """
 
 import os
 import json
+import re
+from datetime import datetime
+from pathlib import Path
 
 from groq import Groq
 import pandas as pd
-import numpy as np
 import streamlit as st
 from dotenv import load_dotenv
 
 load_dotenv()
+
+HISTORICO_PATH = Path(__file__).parent / "historico_chat.json"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SYSTEM PROMPT
@@ -81,315 +85,353 @@ e conhece profundamente os dados e regras de negócio deste projeto específico.
 
 ## INSTRUÇÕES DE COMPORTAMENTO
 - Responda sempre em português brasileiro
-- Os dados reais do dashboard estão no contexto abaixo — USE-OS para responder
-- Sempre que houver dados por área, por projeto ou por mês no contexto, use-os diretamente
+- Os dados reais do dashboard estão no contexto — USE-OS para responder
 - Mostre o cálculo passo a passo quando solicitado
 - Quando o usuário pedir para "adicionar um KPI" ou "incluir uma métrica",
-  retorne obrigatoriamente um bloco JSON no seguinte formato (antes ou depois
-  da explicação textual):
+  retorne obrigatoriamente um bloco JSON no seguinte formato:
   {"acao": "adicionar_kpi", "nome": "...", "formula": "...", "valor": "...", "contexto": "..."}
 - Para perguntas conceituais, seja direto e didático, com exemplos numéricos
 - Máximo 250 palavras por resposta, salvo quando o usuário pedir detalhes
 """
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CSS DO CHAT
+# CSS
 # ─────────────────────────────────────────────────────────────────────────────
 
 _CHAT_CSS = """
 <style>
-/* Container geral do chat */
-.chat-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    padding: 8px 0 24px 0;
-    max-width: 860px;
-    margin: 0 auto;
-}
+[data-testid="stSidebar"] { background: #0d0d1a !important; border-right: 1px solid #1e1e35 !important; }
 
-/* Linha de mensagem */
-.chat-row {
-    display: flex;
-    align-items: flex-end;
-    gap: 10px;
-}
-.chat-row.user {
-    flex-direction: row-reverse;
-}
+.sidebar-header { font-size: 11px; font-weight: 600; color: #86BC25; text-transform: uppercase;
+    letter-spacing: 1px; padding: 4px 0 10px 0; border-bottom: 1px solid #1e1e35; margin-bottom: 12px; }
 
-/* Avatar */
-.avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    flex-shrink: 0;
-    font-weight: 600;
-}
+.history-section-label { font-size: 10px; color: #555; text-transform: uppercase;
+    letter-spacing: 0.8px; margin: 14px 0 4px 0; }
+
+.history-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+    border-radius: 8px; margin-bottom: 2px; }
+.history-item.active { background: #1a1a2e; border-left: 2px solid #86BC25; }
+
+.history-title { font-size: 13px; color: #c0c0d0; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.history-time  { font-size: 10px; color: #555; flex-shrink: 0; }
+
+.chat-wrapper { display: flex; flex-direction: column; gap: 20px; padding: 8px 0 32px 0; }
+
+.chat-row { display: flex; align-items: flex-end; gap: 10px; }
+.chat-row.user { flex-direction: row-reverse; }
+
+.avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
 .avatar.ai   { background: #86BC25; color: #fff; }
 .avatar.user { background: #012169; color: #fff; }
 
-/* Bolha */
-.bubble {
-    max-width: 72%;
-    padding: 12px 16px;
-    border-radius: 18px;
-    font-size: 14px;
-    line-height: 1.65;
-    word-break: break-word;
-}
-.bubble.ai {
-    background: #1e1e2e;
-    color: #e0e0e0;
-    border-bottom-left-radius: 4px;
-}
-.bubble.user {
-    background: #012169;
-    color: #fff;
-    border-bottom-right-radius: 4px;
-}
+.bubble { max-width: 70%; padding: 11px 15px; border-radius: 18px;
+    font-size: 14px; line-height: 1.7; word-break: break-word; }
+.bubble.ai   { background: #1a1a2e; color: #dde0ee; border-bottom-left-radius: 4px; }
+.bubble.user { background: #012169; color: #fff; border-bottom-right-radius: 4px; }
+.bubble ul { margin: 6px 0 6px 18px; padding: 0; }
+.bubble li { margin-bottom: 2px; }
 
-/* Perguntas rápidas */
-.quick-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 8px 0 20px 0;
-}
-.quick-label {
-    font-size: 13px;
-    color: #888;
-    margin-bottom: 6px;
-}
+.kpi-section-title { font-size: 12px; color: #86BC25; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; margin: 16px 0 8px 0; border-bottom: 1px solid #86BC2530; padding-bottom: 4px; }
 
-/* KPI cards section */
-.kpi-section-title {
-    font-size: 13px;
-    color: #86BC25;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    margin: 16px 0 8px 0;
-    border-bottom: 1px solid #86BC2533;
-    padding-bottom: 4px;
-}
+.empty-state { text-align: center; padding: 48px 24px; color: #444; }
+.empty-state .icon  { font-size: 36px; margin-bottom: 12px; }
+.empty-state .title { font-size: 16px; color: #666; margin-bottom: 6px; }
+.empty-state .sub   { font-size: 13px; }
 </style>
 """
 
 # ─────────────────────────────────────────────────────────────────────────────
-# RESUMO DE DADOS
+# PERSISTÊNCIA EM JSON
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _salvar_historico():
+    dados = []
+    for c in st.session_state.conversations:
+        dados.append({
+            "id":         c["id"],
+            "title":      c["title"],
+            "messages":   c["messages"],
+            "kpis":       c["kpis"],
+            "created_at": c["created_at"].isoformat(),
+        })
+    with open(HISTORICO_PATH, "w", encoding="utf-8") as f:
+        json.dump(dados, f, ensure_ascii=False, indent=2)
+
+
+def _carregar_historico() -> list[dict]:
+    if not HISTORICO_PATH.exists():
+        return []
+    try:
+        with open(HISTORICO_PATH, encoding="utf-8") as f:
+            dados = json.load(f)
+        result = []
+        for c in dados:
+            result.append({
+                "id":         c["id"],
+                "title":      c.get("title", "Conversa"),
+                "messages":   c.get("messages", []),
+                "kpis":       c.get("kpis", []),
+                "created_at": datetime.fromisoformat(c["created_at"]),
+            })
+        return result
+    except Exception:
+        return []
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HELPERS
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _resumo_df(df: pd.DataFrame | None) -> str:
     if df is None or df.empty:
         return "Nenhum dado disponível no momento."
-
     linhas = [f"Total de registros: {len(df)}"]
-
     if "mes_ref" in df.columns:
         datas = df["mes_ref"].dropna().sort_values()
         if not datas.empty:
-            linhas.append(
-                f"Período: {datas.min().strftime('%b/%Y')} → {datas.max().strftime('%b/%Y')}"
-            )
-
+            linhas.append(f"Período: {datas.min().strftime('%b/%Y')} → {datas.max().strftime('%b/%Y')}")
     linhas.append("\n--- TOTAIS CONSOLIDADOS ---")
-    metricas = ["receita_liquida", "receita_prevista", "allowance",
-                "contingencia", "desvio_abs", "atingimento_pct", "receita_ajustada"]
-    for col in metricas:
+    for col in ["receita_liquida", "receita_prevista", "allowance", "contingencia",
+                "desvio_abs", "atingimento_pct", "receita_ajustada"]:
         if col in df.columns:
             s = df[col].dropna()
             if col == "atingimento_pct":
                 linhas.append(f"{col}: média={s.mean():.1f}%")
             else:
                 linhas.append(f"{col}: soma=R${s.sum():,.0f} | média=R${s.mean():,.0f}")
-
     if "area" in df.columns:
         linhas.append("\n--- POR ÁREA ---")
         for area, grp in df.groupby("area"):
             rl = grp["receita_liquida"].sum() if "receita_liquida" in grp else 0
             rp = grp["receita_prevista"].sum() if "receita_prevista" in grp else 0
-            dev_abs = rl - rp
-            dev_pct = (dev_abs / rp * 100) if rp != 0 else 0
-            ating = (rl / rp * 100) if rp != 0 else 0
             al = grp["allowance"].sum() if "allowance" in grp else 0
             co = grp["contingencia"].sum() if "contingencia" in grp else 0
-            raj = rl - al - co
+            dev_pct = ((rl - rp) / rp * 100) if rp != 0 else 0
+            ating   = (rl / rp * 100) if rp != 0 else 0
             linhas.append(
-                f"Área {area}: receita_liquida=R${rl:,.0f} | receita_prevista=R${rp:,.0f} | "
-                f"desvio_abs=R${dev_abs:,.0f} | desvio_pct={dev_pct:.1f}% | "
-                f"atingimento={ating:.1f}% | receita_ajustada=R${raj:,.0f}"
+                f"Área {area}: rl=R${rl:,.0f} | rp=R${rp:,.0f} | desvio_abs=R${rl-rp:,.0f} | "
+                f"desvio_pct={dev_pct:.1f}% | atingimento={ating:.1f}% | raj=R${rl-al-co:,.0f}"
             )
-
     if "sigla_sub_area" in df.columns:
         linhas.append("\n--- POR SUB ÁREA ---")
         for sub, grp in df.groupby("sigla_sub_area"):
             rl = grp["receita_liquida"].sum() if "receita_liquida" in grp else 0
             rp = grp["receita_prevista"].sum() if "receita_prevista" in grp else 0
             dev_pct = ((rl - rp) / rp * 100) if rp != 0 else 0
-            ating = (rl / rp * 100) if rp != 0 else 0
-            linhas.append(
-                f"Sub área {sub}: receita_liquida=R${rl:,.0f} | receita_prevista=R${rp:,.0f} | "
-                f"desvio_pct={dev_pct:.1f}% | atingimento={ating:.1f}%"
-            )
-
+            linhas.append(f"Sub área {sub}: rl=R${rl:,.0f} | rp=R${rp:,.0f} | desvio={dev_pct:.1f}%")
     if "mes_ref" in df.columns and "receita_liquida" in df.columns:
         linhas.append("\n--- POR MÊS (últimos 6) ---")
-        df_mes = (
-            df.groupby("mes_ref")[["receita_liquida", "receita_prevista"]]
-            .sum().sort_index().tail(6)
-        )
+        df_mes = df.groupby("mes_ref")[["receita_liquida","receita_prevista"]].sum().sort_index().tail(6)
         for mes, row in df_mes.iterrows():
-            rl = row.get("receita_liquida", 0)
-            rp = row.get("receita_prevista", 0)
+            rl, rp = row.get("receita_liquida", 0), row.get("receita_prevista", 0)
             dev_pct = ((rl - rp) / rp * 100) if rp != 0 else 0
-            linhas.append(
-                f"{mes.strftime('%b/%Y')}: receita_liquida=R${rl:,.0f} | "
-                f"receita_prevista=R${rp:,.0f} | desvio_pct={dev_pct:.1f}%"
-            )
-
+            linhas.append(f"{mes.strftime('%b/%Y')}: rl=R${rl:,.0f} | rp=R${rp:,.0f} | desvio={dev_pct:.1f}%")
     if "projeto" in df.columns and "receita_liquida" in df.columns:
-        linhas.append("\n--- TOP 5 PROJETOS POR RECEITA LÍQUIDA ---")
-        df_proj = (
-            df.groupby("projeto")["receita_liquida"]
-            .sum().sort_values(ascending=False).head(5)
-        )
-        for proj, val in df_proj.items():
-            linhas.append(f"Projeto {proj}: receita_liquida=R${val:,.0f}")
-
+        linhas.append("\n--- TOP 5 PROJETOS ---")
+        for proj, val in df.groupby("projeto")["receita_liquida"].sum().sort_values(ascending=False).head(5).items():
+            linhas.append(f"Projeto {proj}: R${val:,.0f}")
     return "\n".join(linhas)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# CHAMADA DE API
-# ─────────────────────────────────────────────────────────────────────────────
 
 def _chamar_api(messages: list[dict], contexto_df: str) -> str:
     api_key = os.environ.get("GROQ_API_KEY", "")
     if not api_key:
-        return (
-            "⚠️ A variável **GROQ_API_KEY** não está configurada.\n\n"
-            "1. Acesse https://console.groq.com\n"
-            "2. Clique em **API Keys → Create API Key**\n"
-            "3. Adicione no arquivo `.env`:\n"
-            "```\nGROQ_API_KEY=gsk_sua-chave-aqui\n```"
-        )
-
+        return "⚠️ **GROQ_API_KEY** não configurada. Adicione no `.env`:\n```\nGROQ_API_KEY=gsk_...\n```"
     client = Groq(api_key=api_key)
-    system_com_contexto = (
-        _SYSTEM_PROMPT + "\n\n## DADOS REAIS DO DASHBOARD\n" + contexto_df
-    )
-    msgs_api = [{"role": "system", "content": system_com_contexto}]
-    for m in messages:
-        msgs_api.append({"role": m["role"], "content": m["content"]})
-
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=msgs_api,
-        max_tokens=1000,
-    )
-    return response.choices[0].message.content
+    msgs_api = [{"role": "system", "content": _SYSTEM_PROMPT + "\n\n## DADOS REAIS\n" + contexto_df}]
+    msgs_api += [{"role": m["role"], "content": m["content"]} for m in messages]
+    resp = client.chat.completions.create(model="llama-3.3-70b-versatile", messages=msgs_api, max_tokens=1000)
+    return resp.choices[0].message.content
 
 
 def _tentar_parse_kpi(texto: str) -> dict | None:
     try:
-        inicio = texto.index("{")
-        fim = texto.rindex("}") + 1
-        candidato = json.loads(texto[inicio:fim])
-        if candidato.get("acao") == "adicionar_kpi":
-            return candidato
+        candidato = json.loads(texto[texto.index("{"):texto.rindex("}")+1])
+        return candidato if candidato.get("acao") == "adicionar_kpi" else None
     except (ValueError, json.JSONDecodeError):
-        pass
-    return None
+        return None
+
+
+def _md_to_html(text: str) -> str:
+    text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
+    lines, out, in_list = text.split("\n"), [], False
+    for line in lines:
+        s = line.strip()
+        if s.startswith(("* ", "- ", "• ")):
+            if not in_list:
+                out.append("<ul>")
+                in_list = True
+            out.append(f"<li>{s[2:]}</li>")
+        else:
+            if in_list:
+                out.append("</ul>")
+                in_list = False
+            out.append(f"{line}<br>" if s else "<br>")
+    if in_list:
+        out.append("</ul>")
+    return "\n".join(out)
 
 
 def _render_bubble(role: str, content: str):
-    """Renderiza uma bolha de chat com avatar e alinhamento correto."""
     is_user = role == "user"
-    avatar_class = "user" if is_user else "ai"
-    bubble_class  = "user" if is_user else "ai"
-    avatar_letter = "V" if is_user else "IA"
-    row_class     = "user" if is_user else "ai"
-
-    # Converte markdown básico para HTML simples
-    import re
-    html = content
-    # negrito
-    html = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", html)
-    # bullets
-    lines = html.split("\n")
-    out = []
-    for line in lines:
-        if line.strip().startswith("* ") or line.strip().startswith("- "):
-            out.append(f"<li>{line.strip()[2:]}</li>")
-        else:
-            out.append(line + "<br>" if line.strip() else "")
-    html = "\n".join(out)
-    html = re.sub(r"(<li>.*</li>\n?)+", lambda m: f"<ul style='margin:6px 0 6px 16px;padding:0'>{m.group()}</ul>", html)
-
     st.markdown(
-        f"""
-        <div class="chat-row {row_class}">
-            <div class="avatar {avatar_class}">{avatar_letter}</div>
-            <div class="bubble {bubble_class}">{html}</div>
-        </div>
-        """,
+        f"""<div class="chat-row {'user' if is_user else 'ai'}">
+            <div class="avatar {'user' if is_user else 'ai'}">{'V' if is_user else 'IA'}</div>
+            <div class="bubble {'user' if is_user else 'ai'}">{_md_to_html(content)}</div>
+        </div>""",
         unsafe_allow_html=True,
     )
 
 
+def _tempo_relativo(ts: datetime) -> str:
+    diff = (datetime.now() - ts).total_seconds()
+    if diff < 60:    return "agora"
+    if diff < 3600:  return f"{int(diff//60)}min"
+    if diff < 86400: return f"{int(diff//3600)}h"
+    return ts.strftime("%d/%m")
+
+
 # ─────────────────────────────────────────────────────────────────────────────
-# COMPONENTE STREAMLIT PRINCIPAL
+# ESTADO
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _init_state():
+    if "conversations" not in st.session_state:
+        st.session_state.conversations = _carregar_historico()
+    if "active_conv_id" not in st.session_state:
+        st.session_state.active_conv_id = (
+            st.session_state.conversations[0]["id"]
+            if st.session_state.conversations else None
+        )
+
+
+def _nova_conversa() -> str:
+    conv_id = f"conv_{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+    conv = {"id": conv_id, "title": "Nova conversa", "messages": [], "kpis": [], "created_at": datetime.now()}
+    st.session_state.conversations.insert(0, conv)
+    st.session_state.active_conv_id = conv_id
+    _salvar_historico()
+    return conv_id
+
+
+def _get_active() -> dict | None:
+    for c in st.session_state.conversations:
+        if c["id"] == st.session_state.active_conv_id:
+            return c
+    return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SIDEBAR
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _render_sidebar():
+    with st.sidebar:
+        st.markdown(_CHAT_CSS, unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-header">✦ Assistente de KPIs</div>', unsafe_allow_html=True)
+
+        if st.button("＋  Nova conversa", key="btn_nova", use_container_width=True):
+            _nova_conversa()
+            st.rerun()
+
+        if not st.session_state.conversations:
+            st.markdown('<div style="font-size:12px;color:#444;margin-top:12px">Nenhuma conversa ainda.</div>', unsafe_allow_html=True)
+            return
+
+        hoje, semana, anteriores = [], [], []
+        now = datetime.now()
+        for c in st.session_state.conversations:
+            diff = (now - c["created_at"]).days
+            if diff == 0:    hoje.append(c)
+            elif diff <= 7:  semana.append(c)
+            else:            anteriores.append(c)
+
+        def _render_group(label: str, group: list):
+            if not group:
+                return
+            st.markdown(f'<div class="history-section-label">{label}</div>', unsafe_allow_html=True)
+            for c in group:
+                is_active = c["id"] == st.session_state.active_conv_id
+                tempo = _tempo_relativo(c["created_at"])
+                title = c["title"]
+
+                # Linha: botão de seleção + botão de exclusão
+                col_btn, col_del = st.columns([5, 1])
+                with col_btn:
+                    label_btn = f"{'▶ ' if is_active else ''}{title[:32]}"
+                    if st.button(label_btn, key=f"sel_{c['id']}", use_container_width=True):
+                        st.session_state.active_conv_id = c["id"]
+                        st.rerun()
+                with col_del:
+                    if st.button("✕", key=f"del_{c['id']}"):
+                        st.session_state.conversations = [x for x in st.session_state.conversations if x["id"] != c["id"]]
+                        if st.session_state.active_conv_id == c["id"]:
+                            st.session_state.active_conv_id = (
+                                st.session_state.conversations[0]["id"]
+                                if st.session_state.conversations else None
+                            )
+                        _salvar_historico()
+                        st.rerun()
+
+        _render_group("Hoje", hoje)
+        _render_group("Esta semana", semana)
+        _render_group("Anteriores", anteriores)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# COMPONENTE PRINCIPAL
 # ─────────────────────────────────────────────────────────────────────────────
 
 def render_kpi_agent(df: pd.DataFrame | None = None):
-    if "kpi_agent_messages" not in st.session_state:
-        st.session_state.kpi_agent_messages = []
-    if "kpi_agent_kpis" not in st.session_state:
-        st.session_state.kpi_agent_kpis = []
-
-    # Injeta CSS
+    _init_state()
     st.markdown(_CHAT_CSS, unsafe_allow_html=True)
+    _render_sidebar()
 
-    st.markdown(
-        '<div class="sec-header">Assistente de KPIs — IA Financeira</div>',
-        unsafe_allow_html=True,
-    )
-    st.caption(
-        "Pergunte sobre qualquer KPI, solicite cálculos ou peça para adicionar "
-        "novas métricas ao painel. O agente conhece as fórmulas financeiras "
-        "e os dados reais do dashboard."
-    )
+    if not st.session_state.active_conv_id:
+        _nova_conversa()
 
-    # ── KPIs adicionados pela IA ──────────────────────────────────────────────
-    if st.session_state.kpi_agent_kpis:
+    conv = _get_active()
+    if conv is None:
+        _nova_conversa()
+        conv = _get_active()
+
+    st.markdown('<div class="sec-header">Assistente de KPIs — IA Financeira</div>', unsafe_allow_html=True)
+    st.caption("Pergunte sobre qualquer KPI, solicite cálculos ou peça para adicionar novas métricas.")
+
+    # KPIs adicionados
+    if conv["kpis"]:
         st.markdown('<div class="kpi-section-title">KPIs adicionados pela IA</div>', unsafe_allow_html=True)
-        cols = st.columns(min(len(st.session_state.kpi_agent_kpis), 4))
-        for i, kpi in enumerate(st.session_state.kpi_agent_kpis):
+        cols = st.columns(min(len(conv["kpis"]), 4))
+        for i, kpi in enumerate(conv["kpis"]):
             with cols[i % 4]:
                 st.metric(
                     label=kpi.get("nome", "KPI"),
                     value=kpi.get("valor", "—"),
-                    help=f"Fórmula: {kpi.get('formula', '—')}\n\nContexto: {kpi.get('contexto', '—')}",
+                    help=f"Fórmula: {kpi.get('formula','—')}\n\nContexto: {kpi.get('contexto','—')}",
                 )
         if st.button("Limpar KPIs", key="btn_limpar_kpis"):
-            st.session_state.kpi_agent_kpis = []
+            conv["kpis"] = []
+            _salvar_historico()
             st.rerun()
         st.divider()
 
-    # ── Perguntas rápidas ─────────────────────────────────────────────────────
-    if not st.session_state.kpi_agent_messages:
-        st.markdown('<div class="quick-label">Comece com uma dessas perguntas:</div>', unsafe_allow_html=True)
+    # Estado vazio
+    if not conv["messages"]:
+        st.markdown("""
+        <div class="empty-state">
+            <div class="icon">💬</div>
+            <div class="title">Como posso ajudar?</div>
+            <div class="sub">Pergunte sobre KPIs, solicite cálculos ou peça novas métricas.</div>
+        </div>""", unsafe_allow_html=True)
+        st.markdown("**Sugestões:**")
         perguntas = [
-            "Adicione um KPI de atingimento médio por área",
-            "Qual o desvio percentual total de SL01?",
+            "Adicione KPI de atingimento médio por área",
+            "Qual o desvio percentual de SL01?",
             "Calcule a receita ajustada consolidada",
-            "Sugira 3 KPIs para apresentar ao board",
-            "O que é allowance neste contexto?",
+            "Sugira 3 KPIs para o board",
+            "O que é allowance?",
         ]
         cols = st.columns(len(perguntas))
         for i, perg in enumerate(perguntas):
@@ -397,48 +439,36 @@ def render_kpi_agent(df: pd.DataFrame | None = None):
                 if st.button(perg, key=f"quick_{i}", use_container_width=True):
                     st.session_state["_kpi_quick"] = perg
                     st.rerun()
-        st.markdown("---")
 
-    # ── Processar pergunta rápida ─────────────────────────────────────────────
     if "_kpi_quick" in st.session_state:
-        pergunta = st.session_state.pop("_kpi_quick")
-        _processar_mensagem(pergunta, df)
+        _processar_mensagem(st.session_state.pop("_kpi_quick"), conv, df)
         st.rerun()
 
-    # ── Histórico de mensagens em bolhas ──────────────────────────────────────
-    st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
-    for msg in st.session_state.kpi_agent_messages:
-        _render_bubble(msg["role"], msg["content"])
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Mensagens
+    if conv["messages"]:
+        st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
+        for msg in conv["messages"]:
+            _render_bubble(msg["role"], msg["content"])
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # ── Input ─────────────────────────────────────────────────────────────────
-    prompt = st.chat_input(
-        "Digite sua pergunta ou peça um KPI (ex: 'Adicione margem operacional por área')"
-    )
+    # Input
+    prompt = st.chat_input("Mensagem para o Assistente de KPIs...")
     if prompt:
-        _processar_mensagem(prompt, df)
+        _processar_mensagem(prompt, conv, df)
         st.rerun()
 
-    # ── Limpar conversa ───────────────────────────────────────────────────────
-    if st.session_state.kpi_agent_messages:
-        st.markdown("")
-        if st.button("🗑 Limpar conversa", key="btn_limpar_chat"):
-            st.session_state.kpi_agent_messages = []
-            st.rerun()
 
-
-def _processar_mensagem(prompt: str, df: pd.DataFrame | None):
-    st.session_state.kpi_agent_messages.append({"role": "user", "content": prompt})
-    contexto = _resumo_df(df)
-    historico = list(st.session_state.kpi_agent_messages)
+def _processar_mensagem(prompt: str, conv: dict, df: pd.DataFrame | None):
+    conv["messages"].append({"role": "user", "content": prompt})
+    if len(conv["messages"]) == 1:
+        conv["title"] = prompt[:42] + ("…" if len(prompt) > 42 else "")
 
     with st.spinner("Analisando..."):
-        resposta = _chamar_api(historico, contexto)
+        resposta = _chamar_api(conv["messages"], _resumo_df(df))
 
     kpi_json = _tentar_parse_kpi(resposta)
     if kpi_json:
-        st.session_state.kpi_agent_kpis.append(kpi_json)
+        conv["kpis"].append(kpi_json)
 
-    st.session_state.kpi_agent_messages.append(
-        {"role": "assistant", "content": resposta}
-    )
+    conv["messages"].append({"role": "assistant", "content": resposta})
+    _salvar_historico()
