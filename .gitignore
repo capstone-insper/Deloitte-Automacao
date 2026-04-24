@@ -1,0 +1,37 @@
+# ─── Credenciais — NUNCA commitar ────────────────────────────────────────────
+.env
+*.env
+
+# ─── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ─── Ambientes virtuais ───────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# ─── Streamlit ───────────────────────────────────────────────────────────────
+.streamlit/secrets.toml
+
+# ─── IDEs ────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ─── Sistema operacional ─────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── Dados sensíveis (ajuste se quiser versionar os arquivos de entrada) ─────
+# entrada/

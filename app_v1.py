@@ -14,6 +14,7 @@ import re
 import unicodedata
 import warnings
 from pathlib import Path
+from kpi_agent import render_kpi_agent
 
 import numpy as np
 import pandas as pd
@@ -22,6 +23,10 @@ import plotly.graph_objects as go
 import streamlit as st
 
 warnings.filterwarnings("ignore")
+
+from dotenv import load_dotenv
+load_dotenv()
+from kpi_agent import render_kpi_agent
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIGURAÇÃO DA PÁGINA
@@ -479,7 +484,7 @@ st.markdown("---")
 # ─────────────────────────────────────────────────────────────────────────────
 
 (tab_resumo, tab_kpi, tab_temporal,
- tab_area, tab_proj, tab_desvios, tab_dados, tab_dicionario) = st.tabs([
+ tab_area, tab_proj, tab_desvios, tab_dados, tab_dicionario, tab_agente) = st.tabs([
     "Resumo",
     "KPIs Executivos",
     "Série Temporal",
@@ -488,6 +493,7 @@ st.markdown("---")
     "Desvios & Alertas",
     "Dados",
     "Dicionário",
+    "✦ Assistente de KPIs",
 ])
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1391,3 +1397,10 @@ with tab_dicionario:
         },
     ])
     tbl(dic_calc)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ABA 9 — ASSISTENTE DE KPIs (IA)
+# ══════════════════════════════════════════════════════════════════════════════
+
+with tab_agente:
+    render_kpi_agent(df=df_op)
