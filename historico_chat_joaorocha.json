@@ -1,23 +1,23 @@
 [
   {
     "id": "conv_20260423214827813111",
-    "title": "ola",
+    "title": "Pergunta sobre custos",
     "messages": [
       {
         "role": "user",
-        "content": "ola"
+        "content": "Quais são os principais custos?"
       },
       {
         "role": "assistant",
-        "content": "Olá! Estou aqui para ajudar com as KPIs financeiras e os dados do projeto. Como posso ajudar você hoje? Você precisa de ajuda com algum cálculo específico, precisa entender um conceito financeiro ou precisa de uma análise dos dados do projeto? Estou à disposição!"
+        "content": "Os principais custos são Allowance e Contingência. Allowance soma R$29,911 e Contingência R$29,009, totalizando R$58,920 em custos totais."
       },
       {
         "role": "user",
-        "content": "qual area teve o melhor desempenho financeiro?"
+        "content": "Como reduzir custos?"
       },
       {
         "role": "assistant",
-        "content": "De acordo com os dados, a Área SL02 teve o melhor desempenho financeiro em termos de desvio percentual, com um desvio de 4,9% em relação à receita prevista. Já em termos de atingimento percentual, a Área SL02 também teve o melhor desempenho, com um atingimento de 104,9%.\n\nAqui estão os números detalhados:\n\n* Área SL01: desvio_abs=R$594, desvio_pct=2,9%, atingimento=102,9%\n* Área SL02: desvio_abs=R$441, desvio_pct=4,9%, atingimento=104,9%\n\nPortanto, a Área SL02 teve o melhor desempenho financeiro em termos de desvio percentual e atingimento percentual."
+        "content": "Para reduzir custos, considere otimizar o Allowance e Contingência através de negociações ou ajustes no orçamento."
       }
     ],
     "kpis": [],

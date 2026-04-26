@@ -1,0 +1,50 @@
+[
+  {
+    "id": "conv_20260423220428208579",
+    "title": "ola",
+    "messages": [
+      {
+        "role": "user",
+        "content": "ola"
+      },
+      {
+        "role": "assistant",
+        "content": "Olá! Estou aqui para ajudar com as métricas financeiras e KPIs do projeto. O que você gostaria de saber ou calcular? Quer verificar algum desempenho específico, como o atingimento da receita prevista ou a margem de contribuição? Ou talvez adicionar um novo KPI ao nosso conjunto de dados? Estou à disposição!"
+      }
+    ],
+    "kpis": [],
+    "created_at": "2026-04-23T22:04:28.208579"
+  },
+  {
+    "id": "conv_20260423220347885088",
+    "title": "oi",
+    "messages": [
+      {
+        "role": "user",
+        "content": "oi"
+      },
+      {
+        "role": "assistant",
+        "content": "Olá! Estou aqui para ajudar com suas dúvidas financeiras e KPIs. Como posso ajudar você hoje? Quer saber mais sobre algum KPI específico, como o Desvio Absoluto ou o Atingimento (%)? Ou talvez queira entender melhor as regras de negócio do projeto? Estou à disposição!"
+      }
+    ],
+    "kpis": [],
+    "created_at": "2026-04-23T22:03:47.885088"
+  },
+  {
+    "id": "conv_20260423220236476323",
+    "title": "oieeeee",
+    "messages": [
+      {
+        "role": "user",
+        "content": "oieeeee"
+      },
+      {
+        "role": "assistant",
+        "content": "Oi! Estou aqui para ajudar com as finanças corporativas e os KPIs do projeto. O que você precisa saber ou calcular? Quer saber mais sobre algum dos KPIs apresentados nos dados reais ou precisa de ajuda com algo específico?"
+      }
+    ],
+    "kpis": [],
+    "created_at": "2026-04-23T22:02:36.476323"
+  }
+]

@@ -23,7 +23,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-HISTORICO_PATH = Path(__file__).parent / "historico_chat.json"
+
+def _get_historico_path() -> Path:
+    username = st.session_state.get('username', 'default')
+    safe_username = re.sub(r"[^a-zA-Z0-9_-]", "_", str(username)).strip() or "default"
+    return Path(__file__).parent / f"historico_chat_{safe_username}.json"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SYSTEM PROMPT
@@ -157,15 +161,16 @@ def _salvar_historico():
             "kpis":       c["kpis"],
             "created_at": c["created_at"].isoformat(),
         })
-    with open(HISTORICO_PATH, "w", encoding="utf-8") as f:
+    with open(_get_historico_path(), "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=2)
 
 
 def _carregar_historico() -> list[dict]:
-    if not HISTORICO_PATH.exists():
+    historico_path = _get_historico_path()
+    if not historico_path.exists():
         return []
     try:
-        with open(HISTORICO_PATH, encoding="utf-8") as f:
+        with open(historico_path, encoding="utf-8") as f:
             dados = json.load(f)
         result = []
         for c in dados:
@@ -298,6 +303,14 @@ def _tempo_relativo(ts: datetime) -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _init_state():
+    username = st.session_state.get('username', 'default')
+    if "current_user" not in st.session_state or st.session_state.current_user != username:
+        st.session_state.current_user = username
+        st.session_state.conversations = _carregar_historico()
+        st.session_state.active_conv_id = (
+            st.session_state.conversations[0]["id"]
+            if st.session_state.conversations else None
+        )
     if "conversations" not in st.session_state:
         st.session_state.conversations = _carregar_historico()
     if "active_conv_id" not in st.session_state:
@@ -328,12 +341,14 @@ def _get_active() -> dict | None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _render_sidebar():
+    _init_state()
     with st.sidebar:
         st.markdown(_CHAT_CSS, unsafe_allow_html=True)
-        st.markdown('<div class="sidebar-header">✦ Assistente de KPIs</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-header">✦ Assistente Delloite</div>', unsafe_allow_html=True)
 
         if st.button("＋  Nova conversa", key="btn_nova", use_container_width=True):
             _nova_conversa()
+            st.session_state._jump_to_assistant = True
             st.rerun()
 
         if not st.session_state.conversations:
@@ -363,6 +378,7 @@ def _render_sidebar():
                     label_btn = f"{'▶ ' if is_active else ''}{title[:32]}"
                     if st.button(label_btn, key=f"sel_{c['id']}", use_container_width=True):
                         st.session_state.active_conv_id = c["id"]
+                        st.session_state._jump_to_assistant = True
                         st.rerun()
                 with col_del:
                     if st.button("✕", key=f"del_{c['id']}"):
@@ -387,7 +403,6 @@ def _render_sidebar():
 def render_kpi_agent(df: pd.DataFrame | None = None):
     _init_state()
     st.markdown(_CHAT_CSS, unsafe_allow_html=True)
-    _render_sidebar()
 
     if not st.session_state.active_conv_id:
         _nova_conversa()
@@ -397,7 +412,7 @@ def render_kpi_agent(df: pd.DataFrame | None = None):
         _nova_conversa()
         conv = _get_active()
 
-    st.markdown('<div class="sec-header">Assistente de KPIs — IA Financeira</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-header">Seu assistente Delloite</div>', unsafe_allow_html=True)
     st.caption("Pergunte sobre qualquer KPI, solicite cálculos ou peça para adicionar novas métricas.")
 
     # KPIs adicionados

@@ -10,11 +10,14 @@ Para rodar:
     python -m streamlit run app_v1.py
 """
 
+import hashlib
+import os
 import re
 import unicodedata
 import warnings
 from pathlib import Path
-from kpi_agent import render_kpi_agent
+from kpi_agent import render_kpi_agent, _render_sidebar, _init_state
+from database import verify_user, create_db
 
 import numpy as np
 import pandas as pd
@@ -26,7 +29,9 @@ warnings.filterwarnings("ignore")
 
 from dotenv import load_dotenv
 load_dotenv()
-from kpi_agent import render_kpi_agent
+
+# Inicializar banco de dados
+create_db()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIGURAÇÃO DA PÁGINA
@@ -37,9 +42,75 @@ st.set_page_config(
     layout="wide",
 )
 
+# ─────────────────────────────────────────────────────────────────────────────
+# AUTENTICAÇÃO
+# ─────────────────────────────────────────────────────────────────────────────
+
+AUTH_SECRET = os.getenv("AUTH_SECRET", "delloite_secret_2026")
+
+
+def _make_login_token(username: str) -> str:
+    return hashlib.sha256(f"{username}|{AUTH_SECRET}".encode("utf-8")).hexdigest()
+
+
+def _get_saved_login() -> str | None:
+    try:
+        params = st.query_params
+        username = params.get("user", "")
+        token = params.get("token", "")
+        if username and token == _make_login_token(username):
+            return username
+    except Exception:
+        pass
+    return None
+
+
+def _set_saved_login(username: str | None):
+    try:
+        if username:
+            st.query_params["user"] = username
+            st.query_params["token"] = _make_login_token(username)
+        else:
+            if "user" in st.query_params:
+                del st.query_params["user"]
+            if "token" in st.query_params:
+                del st.query_params["token"]
+    except Exception:
+        pass
+
+
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
+    st.session_state.username = None
+
+if not st.session_state.logged_in:
+    saved_user = _get_saved_login()
+    if saved_user:
+        st.session_state.logged_in = True
+        st.session_state.username = saved_user
+
+if not st.session_state.logged_in:
+    st.title("Login - Dashboard Executivo — Delloite")
+    username = st.text_input("Usuário")
+    password = st.text_input("Senha", type="password")
+    if st.button("Entrar"):
+        if verify_user(username, password):
+            st.session_state.logged_in = True
+            st.session_state.username = username
+            _set_saved_login(username)
+            st.success("Login realizado com sucesso!")
+            st.rerun()
+        else:
+            st.error("Usuário ou senha incorretos.")
+    st.stop()  # Para a execução se não logado
+
 ROOT = Path(__file__).resolve().parent
 PASTA_ENTRADA = ROOT / "entrada"
 ENCODINGS = ["utf-16", "utf-16-le", "utf-8-sig", "utf-8", "latin1"]
+
+# Inicializar estado do agente KPI
+from kpi_agent import _init_state
+_init_state()
 
 MESES_PT = {
     "jan": 1, "fev": 2, "mar": 3, "abr": 4, "mai": 5, "jun": 6,
@@ -500,7 +571,27 @@ if df_op.empty:
 # ─────────────────────────────────────────────────────────────────────────────
 
 st.title("Dashboard Executivo — Delloite")
+
+# Botão de logout
+if st.button("Logout"):
+    st.session_state.logged_in = False
+    st.session_state.username = None
+    _set_saved_login(None)
+    st.rerun()
+
 st.markdown("---")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SIDEBAR COM HISTÓRICO DO ASSISTENTE
+# ─────────────────────────────────────────────────────────────────────────────
+
+_init_state()
+_render_sidebar()
+
+if st.session_state.get("_jump_to_assistant", False):
+    st.session_state._jump_to_assistant = False
+    render_kpi_agent(df=df_op)
+    st.stop()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ABAS
@@ -518,6 +609,13 @@ st.markdown("---")
     "Dicionário",
     "✦ Assistente de KPIs",
 ])
+
+# Se um conversa foi selecionada no sidebar, ir direto para o assistente
+if st.session_state.get("_jump_to_assistant", False):
+    st.session_state._jump_to_assistant = False
+    with tab_agente:
+        render_kpi_agent(df=df_op)
+    st.stop()  # Parar aqui para não renderizar o resto das abas
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ABA 1 — RESUMO
