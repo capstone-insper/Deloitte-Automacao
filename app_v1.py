@@ -347,15 +347,35 @@ def filtros(df: pd.DataFrame, com_area=False, com_projeto=False,
     """
     Renderiza filtros diretamente (sem expander) apenas para as dimensões
     presentes nos dados. Retorna o dataframe filtrado.
+
+    OBS: o filtro de período por data foi substituído pelo seletor global de
+    Ano Fiscal (sidebar). O parâmetro `com_data` é mantido por compatibilidade,
+    mas agora apenas exibe um pequeno aviso indicando o FY ativo.
     """
-    n = sum([com_area, com_projeto, com_subarea, com_funcionario, com_data])
-    if n == 0:
+    # exibe aviso de período ativo se solicitado
+    if com_data:
+        modo = st.session_state.get("modo_periodo", "fy")
+        if modo == "fy":
+            fy_atual = st.session_state.get("fy_sel")
+            posicoes = st.session_state.get("fy_posicoes") or []
+            if fy_atual is not None and posicoes:
+                meses_str = ", ".join(MESES_FY[p - 1] for p in posicoes)
+                st.caption(
+                    f"Período: **{fy_label(fy_atual)}** "
+                    f"({len(posicoes)} mês{'es' if len(posicoes) != 1 else ''}: "
+                    f"{meses_str}) · comparações vs **{fy_label(fy_atual - 1)}** "
+                    f"(mesmos meses)"
+                )
+        else:
+            st.caption("Período: **Histórico completo** (sem filtro temporal)")
+
+    n_filtros = sum([com_area, com_projeto, com_subarea, com_funcionario])
+    if n_filtros == 0:
         return df
 
-    cols = st.columns(n)
+    cols = st.columns(n_filtros)
     idx  = 0
     areas = projetos = subareas = funcs = None
-    start = end = None
 
     if com_area:
         opts = _vals(df, "area")
@@ -398,31 +418,11 @@ def filtros(df: pd.DataFrame, com_area=False, com_projeto=False,
             funcs = st.multiselect("Funcionário", opts, default=opts, key=f"ff_{sufixo}")
         idx += 1
 
-    if com_data and "mes_ref" in df.columns and not df["mes_ref"].isna().all():
-        min_d = df["mes_ref"].min().date()
-        max_d = df["mes_ref"].max().date()
-        with cols[idx]:
-            intervalo = st.date_input(
-                "Período", value=(min_d, max_d),
-                min_value=min_d, max_value=max_d,
-                key=f"fd_{sufixo}",
-            )
-        start, end = (intervalo if len(intervalo) == 2 else (min_d, max_d))
-        idx += 1
-
     d = df.copy()
     if areas    is not None and "area"           in d.columns: d = d[d["area"].isin(areas)]
     if projetos is not None and "projeto"        in d.columns: d = d[d["projeto"].isin(projetos)]
     if subareas is not None and "sigla_sub_area" in d.columns: d = d[d["sigla_sub_area"].isin(subareas)]
     if funcs    is not None and "funcionario"    in d.columns: d = d[d["funcionario"].isin(funcs)]
-    if start is not None and end is not None and "mes_ref" in d.columns:
-        try:
-            d = d[
-                (d["mes_ref"] >= pd.Timestamp(start)) &
-                (d["mes_ref"] <= pd.Timestamp(end))
-            ]
-        except Exception:
-            pass
     return d
 
 
@@ -478,6 +478,133 @@ def _aplicar_janela(df: pd.DataFrame, janela: str) -> pd.DataFrame:
     return df
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# ANO FISCAL DELOITTE  (FY = Junho → Maio)
+# Ex.: FY26 = Jun/2025 → Mai/2026
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Nome dos meses na ordem do FY (Jun = posição 1, Mai = posição 12)
+MESES_FY: list[str] = [
+    "Jun", "Jul", "Ago", "Set", "Out", "Nov",
+    "Dez", "Jan", "Fev", "Mar", "Abr", "Mai",
+]
+
+
+def fy_de_data(d) -> int:
+    """Retorna o Ano Fiscal Deloitte (FY) ao qual a data pertence."""
+    d = pd.Timestamp(d)
+    return d.year + 1 if d.month >= 6 else d.year
+
+
+def fy_intervalo(fy: int) -> tuple[pd.Timestamp, pd.Timestamp]:
+    """Retorna (inicio, fim) do FY: 1º Jun do ano (fy-1) até último dia de Mai do ano fy."""
+    inicio = pd.Timestamp(year=fy - 1, month=6, day=1)
+    fim = pd.Timestamp(year=fy, month=5, day=31)
+    return inicio, fim
+
+
+def fy_disponiveis(df: pd.DataFrame) -> list[int]:
+    """Lista FYs presentes nos dados (decrescente)."""
+    if "mes_ref" not in df.columns or df.empty:
+        return []
+    fys = df["mes_ref"].dropna().apply(fy_de_data).unique().tolist()
+    return sorted(fys, reverse=True)
+
+
+def fy_label(fy: int) -> str:
+    """Rótulo legível: FY26 (Jun/25 – Mai/26)."""
+    yy_ini = f"{(fy - 1) % 100:02d}"
+    yy_fim = f"{fy % 100:02d}"
+    return f"FY{yy_fim} (Jun/{yy_ini} – Mai/{yy_fim})"
+
+
+def pos_no_fy(d) -> int:
+    """Posição do mês dentro do FY (Jun=1, Jul=2, …, Mai=12)."""
+    d = pd.Timestamp(d)
+    return ((d.month - 6) % 12) + 1
+
+
+def aplicar_fy(df: pd.DataFrame, fy: int, posicoes: list[int] | None = None) -> pd.DataFrame:
+    """Filtra df para o FY especificado.
+    Se `posicoes` for fornecido, mantém apenas os meses cujas posições no FY
+    estão na lista (Jun=1, Mai=12). Se None, mantém o FY inteiro."""
+    if "mes_ref" not in df.columns or df.empty:
+        return df.iloc[0:0].copy() if not df.empty else df
+    inicio, fim = fy_intervalo(fy)
+    d = df[(df["mes_ref"] >= inicio) & (df["mes_ref"] <= fim)].copy()
+    if posicoes is not None and not d.empty:
+        d = d[d["mes_ref"].apply(pos_no_fy).isin(posicoes)]
+    return d
+
+
+def posicoes_disponiveis_no_fy(df: pd.DataFrame, fy: int) -> list[int]:
+    """Posições (1..12) com dados no FY informado, em ordem cronológica do FY."""
+    if "mes_ref" not in df.columns or df.empty:
+        return []
+    sub = aplicar_fy(df, fy)
+    if sub.empty:
+        return []
+    pos = sub["mes_ref"].dropna().apply(pos_no_fy).unique().tolist()
+    return sorted(pos)
+
+
+def n_meses_no_fy(df: pd.DataFrame, fy: int) -> int:
+    """Quantidade de meses distintos com dados no FY informado."""
+    if "mes_ref" not in df.columns or df.empty:
+        return 0
+    sub = aplicar_fy(df, fy)
+    return int(sub["mes_ref"].dropna().nunique())
+
+
+def selecoes_de_sufixo(sufixo: str) -> dict:
+    """Lê do session_state as seleções dos filtros associados ao sufixo da aba."""
+    sels: dict = {}
+    for chave, col in [
+        (f"fa_{sufixo}", "area"),
+        (f"fp_{sufixo}", "projeto"),
+        (f"fs_{sufixo}", "sigla_sub_area"),
+        (f"ff_{sufixo}", "funcionario"),
+    ]:
+        v = st.session_state.get(chave)
+        if v is not None:
+            sels[col] = v
+    return sels
+
+
+def aplicar_selecoes(df: pd.DataFrame, selecoes: dict) -> pd.DataFrame:
+    """Aplica filtros de seleção (multiselect) a um DataFrame."""
+    d = df.copy()
+    for col, vals in selecoes.items():
+        if col in d.columns and vals is not None:
+            d = d[d[col].isin(vals)]
+    return d
+
+
+def delta_fy(df_full: pd.DataFrame, sufixo: str, col: str) -> tuple[float | None, str, str]:
+    """
+    Calcula variação % do FY atual vs FY anterior, usando as MESMAS posições de
+    meses (Jun=1 … Mai=12) selecionadas pelo usuário e respeitando os filtros
+    (area/projeto/subarea/funcionario) da aba.
+    Retorna (None, "", "") quando o modo for "Histórico completo" ou faltar dado.
+    """
+    if st.session_state.get("modo_periodo") != "fy":
+        return None, "", ""
+    fy_atual = st.session_state.get("fy_sel")
+    posicoes = st.session_state.get("fy_posicoes") or []
+    if fy_atual is None or not posicoes:
+        return None, "", ""
+    sels = selecoes_de_sufixo(sufixo)
+    df_a = aplicar_selecoes(aplicar_fy(df_full, fy_atual, posicoes), sels)
+    df_p = aplicar_selecoes(aplicar_fy(df_full, fy_atual - 1, posicoes), sels)
+    v_a = df_a[col].sum() if col in df_a.columns else 0
+    v_p = df_p[col].sum() if col in df_p.columns else 0
+    lbl_a = f"FY{fy_atual % 100:02d}"
+    lbl_p = f"FY{(fy_atual - 1) % 100:02d}"
+    if v_p == 0:
+        return None, lbl_a, lbl_p
+    return (v_a - v_p) / abs(v_p) * 100, lbl_a, lbl_p
+
+
 def fmt_brl(v, dec=0) -> str:
     if v is None or (isinstance(v, float) and np.isnan(v)):
         return "—"
@@ -489,17 +616,124 @@ def fmt_brl(v, dec=0) -> str:
 # CARREGA DADOS
 # ─────────────────────────────────────────────────────────────────────────────
 
-df_op, df_orc = carregar_dados()
+df_op_full, df_orc = carregar_dados()
 
-if df_op.empty:
+if df_op_full.empty:
     st.error("Não foi possível carregar os dados. Verifique a pasta `entrada/`.")
     st.stop()
 
 # ─────────────────────────────────────────────────────────────────────────────
-# TÍTULO
+# TÍTULO + PERÍODO DE ANÁLISE (controles globais no topo do dashboard)
 # ─────────────────────────────────────────────────────────────────────────────
 
 st.title("Dashboard Executivo — Delloite")
+
+fy_opts = fy_disponiveis(df_op_full)
+
+# Defaults
+fy_sel: int | None = None
+posicoes_sel: list[int] = []
+modo_periodo = "fy"  # "fy" ou "historico"
+
+with st.container(border=True):
+    st.markdown(
+        "**Período de análise** &nbsp;·&nbsp; "
+        "<span style='color:#666;font-size:12px;'>Calendário Deloitte: "
+        "Junho → Maio (ex.: FY26 = Jun/2025 a Mai/2026)</span>",
+        unsafe_allow_html=True,
+    )
+
+    if not fy_opts:
+        st.warning("Nenhum dado temporal disponível.")
+        modo_periodo = "historico"
+    else:
+        col_modo, col_fy, col_meses = st.columns([1.2, 1, 3.2])
+
+        with col_modo:
+            modo_lbl = st.radio(
+                "Modo",
+                ["Ano Fiscal específico", "Histórico completo"],
+                key="modo_periodo_lbl",
+                help=(
+                    "**Ano Fiscal específico**: filtra o dashboard para um FY e os meses "
+                    "escolhidos, comparando automaticamente com os mesmos meses do FY anterior.\n\n"
+                    "**Histórico completo**: mostra todos os dados disponíveis sem filtro temporal "
+                    "e desativa as comparações de FY."
+                ),
+            )
+            modo_periodo = "fy" if modo_lbl.startswith("Ano Fiscal") else "historico"
+
+        if modo_periodo == "fy":
+            with col_fy:
+                fy_sel = st.selectbox(
+                    "Ano fiscal",
+                    fy_opts,
+                    format_func=fy_label,
+                    index=0,
+                    key="fy_sel_widget",
+                    help="Lista todos os FYs com dados disponíveis (mais recente primeiro).",
+                )
+
+            pos_disp = posicoes_disponiveis_no_fy(df_op_full, fy_sel)
+            opcoes_meses = [(p, MESES_FY[p - 1]) for p in pos_disp]
+            labels_disp = [nome for _, nome in opcoes_meses]
+
+            with col_meses:
+                sel_labels = st.multiselect(
+                    "Meses do FY (Jun = 1º mês)",
+                    options=labels_disp,
+                    default=labels_disp,
+                    key="meses_sel_widget",
+                    help=(
+                        "Selecione os meses do FY que deseja analisar. A comparação "
+                        "automática usará os MESMOS meses do FY anterior."
+                    ),
+                )
+            posicoes_sel = [p for (p, lbl) in opcoes_meses if lbl in sel_labels]
+        else:
+            with col_fy:
+                min_d = df_op_full["mes_ref"].dropna().min()
+                max_d = df_op_full["mes_ref"].dropna().max()
+                if pd.notna(min_d) and pd.notna(max_d):
+                    st.metric(
+                        "Histórico disponível",
+                        f"{min_d.strftime('%b/%y')} → {max_d.strftime('%b/%y')}",
+                    )
+            with col_meses:
+                st.info(
+                    "Mostrando **todo o histórico** disponível. "
+                    "Comparações de FY ficam desativadas neste modo."
+                )
+
+# Persiste no session_state para uso pelas funções de delta e filtros
+st.session_state["modo_periodo"] = modo_periodo
+st.session_state["fy_sel"] = fy_sel
+st.session_state["fy_posicoes"] = posicoes_sel
+
+# Aplica o filtro global ao DataFrame operacional usado pelas abas.
+# df_op_full permanece disponível para o cálculo das comparações (FY anterior).
+if modo_periodo == "fy" and fy_sel is not None and posicoes_sel:
+    df_op = aplicar_fy(df_op_full, fy_sel, posicoes_sel)
+else:
+    df_op = df_op_full.copy()
+
+# Variáveis auxiliares para textos e overlays nas abas
+n_meses_fy = len(posicoes_sel) if modo_periodo == "fy" else 0
+
+# Resumo do que está ativo, logo abaixo dos controles
+if modo_periodo == "fy" and fy_sel is not None and posicoes_sel:
+    meses_str = ", ".join(MESES_FY[p - 1] for p in posicoes_sel)
+    st.caption(
+        f"Visão de **{fy_label(fy_sel)}** ({n_meses_fy} mês"
+        f"{'es' if n_meses_fy != 1 else ''}: {meses_str}) · "
+        f"comparações vs **{fy_label(fy_sel - 1)}** (mesmos meses)"
+    )
+elif modo_periodo == "fy" and not posicoes_sel:
+    st.warning("Selecione pelo menos um mês do FY para visualizar os dados.")
+
+if df_op.empty and modo_periodo == "fy" and posicoes_sel:
+    st.warning("Não há dados para o FY/meses selecionados.")
+
 st.markdown("---")
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -534,25 +768,25 @@ with tab_resumo:
 
     c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Receita Líquida",   fmt_brl(rl_tot),
-              delta=_fmt_delta(_delta_mes(df_res, "receita_liquida")),
-              help="Soma da Receita Líquida no período selecionado.")
+              delta=_fmt_delta(delta_fy(df_op_full, "res", "receita_liquida")),
+              help="Soma da Receita Líquida no Ano Fiscal selecionado.")
     c2.metric("Receita Prevista",  fmt_brl(rp_tot),
-              help="Soma da Receita Prevista no período selecionado.")
+              delta=_fmt_delta(delta_fy(df_op_full, "res", "receita_prevista")),
+              help="Soma da Receita Prevista no Ano Fiscal selecionado.")
     c3.metric("Desvio",            fmt_brl(dev),
-              delta=_fmt_delta(_delta_mes(df_res, "desvio_abs")),
+              delta=_fmt_delta(delta_fy(df_op_full, "res", "desvio_abs")),
               help=FORMULA["desvio_abs"])
     c4.metric("Atingimento",       f"{ating:.1f}%",
-              delta=_fmt_delta(_delta_mes(df_res, "atingimento_pct")),
               help=FORMULA["atingimento_pct"])
     c5.metric("Custo Total",       fmt_brl(ct_tot),
-              delta=_fmt_delta(_delta_mes(df_res, "custo_total"), inverso=True),
+              delta=_fmt_delta(delta_fy(df_op_full, "res", "custo_total"), inverso=True),
               help=FORMULA["custo_total"])
 
     st.markdown("")
     col_g, col_d = st.columns(2)
 
     with col_g:
-        sec("Atingimento Geral")
+        sec("Atingimento Geral de Receita (Realizada / Prevista)")
         fig_gauge = go.Figure(go.Indicator(
             mode="gauge+number+delta",
             value=round(ating, 1),
@@ -578,7 +812,7 @@ with tab_resumo:
         st.plotly_chart(fig_gauge, use_container_width=True, key="res_gauge")
 
     with col_d:
-        sec("Composição por Área")
+        sec("Composição da Receita Líquida por Área")
         if "area" in df_res.columns:
             fig_donut = px.pie(
                 df_res.groupby("area")["receita_liquida"].sum().reset_index(),
@@ -596,7 +830,7 @@ with tab_resumo:
     col_top, col_bot = st.columns(2)
 
     with col_top:
-        sec("Top 5 Projetos — Receita Líquida")
+        sec("Top 5 Projetos por Receita Líquida")
         if "projeto" in df_res.columns:
             top5 = (
                 df_res.groupby("projeto")["receita_liquida"].sum()
@@ -605,7 +839,7 @@ with tab_resumo:
             tbl(top5)
 
     with col_bot:
-        sec("Projetos com Maior Desvio Negativo")
+        sec("Top 5 Projetos com Maior Desvio Negativo (Realizado − Previsto)")
         if "projeto" in df_res.columns:
             bot5 = (
                 df_res.groupby("projeto")["desvio_abs"].sum()
@@ -614,7 +848,7 @@ with tab_resumo:
             tbl(bot5)
 
     if "mes_ref" in df_res.columns:
-        sec("Evolução Mensal")
+        sec("Evolução Mensal de Receita Líquida × Prevista (R$)")
         ts_sp = (
             df_res.groupby("mes_ref")[["receita_liquida", "receita_prevista"]]
             .sum().reset_index().sort_values("mes_ref")
@@ -657,30 +891,30 @@ with tab_kpi:
     ra  = df_kp.get("receita_ajustada", pd.Series(dtype=float)).sum()
     da  = rl - rp
 
-    sec("Métricas Principais")
+    sec("Métricas Financeiras Principais (FY)")
     c1, c2, c3 = st.columns(3)
     c4, c5, c6 = st.columns(3)
 
     c1.metric("Receita Líquida",   fmt_brl(rl),
-              delta=_fmt_delta(_delta_mes(df_kp, "receita_liquida")),
-              help="Soma da Receita Líquida no período.")
+              delta=_fmt_delta(delta_fy(df_op_full, "kpi", "receita_liquida")),
+              help="Soma da Receita Líquida no Ano Fiscal selecionado.")
     c2.metric("Receita Prevista",  fmt_brl(rp),
-              help="Soma da Receita Prevista no período.")
+              delta=_fmt_delta(delta_fy(df_op_full, "kpi", "receita_prevista")),
+              help="Soma da Receita Prevista no Ano Fiscal selecionado.")
     c3.metric("Custo Total",       fmt_brl(ct),
-              delta=_fmt_delta(_delta_mes(df_kp, "custo_total"), inverso=True),
+              delta=_fmt_delta(delta_fy(df_op_full, "kpi", "custo_total"), inverso=True),
               help=FORMULA["custo_total"])
     c4.metric("Desvio (R$)",       fmt_brl(da),
-              delta=_fmt_delta(_delta_mes(df_kp, "desvio_abs")),
+              delta=_fmt_delta(delta_fy(df_op_full, "kpi", "desvio_abs")),
               help=FORMULA["desvio_abs"])
     c5.metric("Atingimento (%)",   f"{at:.1f}%",
-              delta=_fmt_delta(_delta_mes(df_kp, "atingimento_pct")),
               help=FORMULA["atingimento_pct"])
     c6.metric("Receita Ajustada",  fmt_brl(ra),
-              delta=_fmt_delta(_delta_mes(df_kp, "receita_ajustada")),
+              delta=_fmt_delta(delta_fy(df_op_full, "kpi", "receita_ajustada")),
               help=FORMULA["receita_ajustada"])
 
     if "area" in df_kp.columns:
-        sec("KPIs por Área")
+        sec("Indicadores Financeiros por Área (FY)")
         kpi_area = df_kp.groupby("area").agg(
             receita_liquida =("receita_liquida",  "sum"),
             receita_prevista=("receita_prevista", "sum"),
@@ -696,7 +930,7 @@ with tab_kpi:
 
         col_a, col_b = st.columns(2)
         with col_a:
-            sec("Receita vs Custo por Área")
+            sec("Receita Realizada × Prevista × Custo Total por Área")
             df_bar = kpi_area.melt(id_vars="area",
                                      value_vars=["receita_liquida", "receita_prevista", "custo_total"],
                                      var_name="Métrica", value_name="Valor")
@@ -716,7 +950,7 @@ with tab_kpi:
             st.plotly_chart(fig_bar, use_container_width=True, key="kpi_bar_area")
 
         with col_b:
-            sec("Atingimento por Área (%)")
+            sec("Atingimento de Receita por Área (%)")
             fig_at = px.bar(
                 kpi_area, x="area", y="atingimento_pct",
                 color="area", color_discrete_map=CORES_AREA,
@@ -725,8 +959,9 @@ with tab_kpi:
             )
             fig_at.add_hline(y=100, line_dash="dash", line_color=COR_DESVIO_NEG,
                              annotation_text="Meta 100%")
-            fig_at.update_layout(height=340, margin=dict(t=10, b=30))
-        rotular_fig(fig_at)
+            fig_at.update_layout(height=340, margin=dict(t=10, b=30), showlegend=False)
+            rotular_fig(fig_at)
+            st.plotly_chart(fig_at, use_container_width=True, key="kpi_atingimento_area")
 
     st.download_button(
         label="Baixar CSV",
@@ -744,32 +979,40 @@ with tab_kpi:
 with tab_temporal:
     df_ts = filtros(df_op, com_area=True, com_data=True, sufixo="ts")
 
-    sec("Janela Temporal — Acumulado de Métricas")
-    janela = st.radio(
-        "Selecione a janela",
-        ["M", "3M", "6M", "1Y", "YTD"],
-        index=2, horizontal=True, key="janela",
-    )
+    if modo_periodo == "fy" and fy_sel is not None:
+        fy_lbl_atual = fy_label(fy_sel)
+        fy_lbl_ant = fy_label(fy_sel - 1)
+        meses_str = ", ".join(MESES_FY[p - 1] for p in posicoes_sel)
+        sec(f"Acumulado no Ano Fiscal — {fy_lbl_atual}")
+        st.caption(
+            f"Variações comparam **{fy_lbl_atual}** com **{fy_lbl_ant}** "
+            f"nos mesmos meses do FY ({meses_str})."
+        )
+    else:
+        sec("Acumulado no Período — Histórico Completo")
+        st.caption("Comparações de FY desativadas neste modo.")
 
-    df_j  = _aplicar_janela(df_ts, janela)
-    j_rl  = df_j["receita_liquida"].sum()
-    j_rp  = df_j["receita_prevista"].sum()
-    j_ct  = df_j["custo_total"].sum()
+    j_rl  = df_ts["receita_liquida"].sum()
+    j_rp  = df_ts["receita_prevista"].sum()
+    j_ct  = df_ts["custo_total"].sum()
     j_dev = j_rl - j_rp
     j_at  = (j_rl / j_rp * 100) if j_rp else 0.0
 
     cj1, cj2, cj3, cj4, cj5 = st.columns(5)
-    cj1.metric(f"Receita Líquida ({janela})",   fmt_brl(j_rl),
-               help="Soma da Receita Líquida na janela selecionada.")
-    cj2.metric(f"Receita Prevista ({janela})",  fmt_brl(j_rp),
-               help="Soma da Receita Prevista na janela selecionada.")
-    cj3.metric(f"Desvio ({janela})",            fmt_brl(j_dev),
-               delta=f"{'+' if j_dev >= 0 else ''}{j_dev / j_rp * 100:.1f}%" if j_rp else None,
+    cj1.metric("Receita Líquida",   fmt_brl(j_rl),
+               delta=_fmt_delta(delta_fy(df_op_full, "ts", "receita_liquida")),
+               help="Soma da Receita Líquida no período selecionado.")
+    cj2.metric("Receita Prevista",  fmt_brl(j_rp),
+               delta=_fmt_delta(delta_fy(df_op_full, "ts", "receita_prevista")),
+               help="Soma da Receita Prevista no período selecionado.")
+    cj3.metric("Desvio",            fmt_brl(j_dev),
+               delta=_fmt_delta(delta_fy(df_op_full, "ts", "desvio_abs")),
                help=FORMULA["desvio_abs"])
-    cj4.metric(f"Atingimento ({janela})",       f"{j_at:.1f}%",
+    cj4.metric("Atingimento",       f"{j_at:.1f}%",
                delta=f"{j_at - 100:.1f}% vs meta 100%",
                help=FORMULA["atingimento_pct"])
-    cj5.metric(f"Custo Total ({janela})",       fmt_brl(j_ct),
+    cj5.metric("Custo Total",       fmt_brl(j_ct),
+               delta=_fmt_delta(delta_fy(df_op_full, "ts", "custo_total"), inverso=True),
                help=FORMULA["custo_total"])
 
     st.markdown("")
@@ -801,13 +1044,31 @@ with tab_temporal:
             )
             ts = ts.merge(orc_r, on="mes_ref", how="left")
 
+        # Posição no FY (1 = Junho, 12 = Maio) para alinhar com FY anterior
+        ts["pos_fy"] = ts["mes_ref"].dt.month.apply(lambda m: ((m - 6) % 12) + 1)
         ts["Mês"] = ts["mes_ref"].dt.strftime("%b/%y")
         ts["atingimento_pct"] = np.where(
             ts["receita_prevista"] != 0,
             ts["receita_liquida"] / ts["receita_prevista"] * 100, np.nan,
         )
 
-        sec("Evolução Mensal — Orçado × Realizado")
+        # Série do FY anterior (mesmas seleções), para sobreposição
+        ts_ant = pd.DataFrame()
+        if modo_periodo == "fy" and fy_sel is not None and posicoes_sel:
+            sels_ts = selecoes_de_sufixo("ts")
+            df_ts_ant = aplicar_selecoes(
+                aplicar_fy(df_op_full, fy_sel - 1, posicoes_sel), sels_ts
+            )
+            if not df_ts_ant.empty and "mes_ref" in df_ts_ant.columns:
+                ts_ant = (
+                    df_ts_ant.groupby("mes_ref")["receita_liquida"]
+                    .sum().reset_index().sort_values("mes_ref")
+                )
+                ts_ant["pos_fy"] = ts_ant["mes_ref"].dt.month.apply(
+                    lambda m: ((m - 6) % 12) + 1
+                )
+
+        sec("Evolução Mensal de Receita — Realizado × Previsto × Orçado")
         y_linhas = ["receita_liquida", "receita_prevista"]
         if "orcado_receita" in ts.columns:
             y_linhas.append("orcado_receita")
@@ -820,6 +1081,19 @@ with tab_temporal:
             },
             labels={**rotulos_para(y_linhas), "value": "R$", "variable": "Série"},
         )
+        # Overlay do FY anterior, alinhado por posição no FY
+        if not ts_ant.empty:
+            ts_ant_aligned = ts_ant.merge(
+                ts[["pos_fy", "Mês"]], on="pos_fy", how="inner"
+            )
+            if not ts_ant_aligned.empty:
+                fig_linha.add_scatter(
+                    x=ts_ant_aligned["Mês"],
+                    y=ts_ant_aligned["receita_liquida"],
+                    mode="lines+markers",
+                    line=dict(dash="dot", color="#888"),
+                    name=f"Receita Líquida — {fy_label(fy_sel - 1)}",
+                )
         fig_linha.update_layout(height=320, margin=dict(t=10, b=30))
         rotular_fig(fig_linha)
         st.plotly_chart(fig_linha, use_container_width=True, key="ts_linha")
@@ -827,7 +1101,7 @@ with tab_temporal:
         col_dv, col_ct = st.columns(2)
 
         with col_dv:
-            sec("Desvio Mensal (Realizado − Previsto)")
+            sec("Desvio Mensal de Receita (Realizado − Previsto, R$)")
             fig_dev = go.Figure(go.Bar(
                 x=ts["Mês"], y=ts["desvio_abs"],
                 marker_color=[COR_DESVIO_POS if v >= 0 else COR_DESVIO_NEG
@@ -841,7 +1115,7 @@ with tab_temporal:
             st.plotly_chart(fig_dev, use_container_width=True, key="ts_desvio")
 
         with col_ct:
-            sec("Custo Total Mensal")
+            sec("Custo Total Mensal — Allowance + Contingência (R$)")
             fig_area = px.area(
                 ts, x="Mês", y="custo_total",
                 color_discrete_sequence=["#FF9800"],
@@ -850,7 +1124,7 @@ with tab_temporal:
             fig_area.update_layout(height=290, margin=dict(t=10, b=30))
             st.plotly_chart(fig_area, use_container_width=True, key="ts_custo_area")
 
-        sec("Atingimento Mensal (%)")
+        sec("Atingimento Mensal de Receita — Realizada / Prevista (%)")
         fig_at_ts = px.line(
             ts, x="Mês", y="atingimento_pct", markers=True,
             color_discrete_sequence=[COR_DLT_GREEN],
@@ -877,7 +1151,7 @@ with tab_temporal:
 with tab_area:
     df_ar = filtros(df_op, com_area=True, com_data=True, sufixo="ar")
 
-    sec("Orçado × Realizado por Área")
+    sec("Orçado × Realizado por Área — Receita e Custo")
     if "area" in df_ar.columns:
         ag_area = df_ar.groupby("area").agg(
             receita_liquida =("receita_liquida",  "sum"),
@@ -912,12 +1186,14 @@ with tab_area:
                     rotulo_coluna("orcado_budget"):    "#9B59B6",
                 },
                 labels={"Valor": "R$", "area": "Área"},
+                title="Receita Orçada × Realizada × Custo por Área",
             )
-            fig_ar.update_layout(height=340, margin=dict(t=10, b=30))
-        rotular_fig(fig_ar)
+            fig_ar.update_layout(height=340, margin=dict(t=40, b=30))
+            rotular_fig(fig_ar)
+            st.plotly_chart(fig_ar, use_container_width=True, key="ar_orc_real")
 
         with col_b2:
-            sec("Atingimento por Área (%)")
+            sec("Atingimento de Receita por Área (%)")
             fig_at_ar = px.bar(
                 ag_area, x="area", y="atingimento_pct",
                 color="area", color_discrete_map=CORES_AREA, text_auto=".1f",
@@ -925,7 +1201,7 @@ with tab_area:
             )
             fig_at_ar.add_hline(y=100, line_dash="dash", line_color=COR_DESVIO_NEG,
                                 annotation_text="Meta 100%")
-            fig_at_ar.update_layout(height=340, margin=dict(t=10, b=30))
+            fig_at_ar.update_layout(height=340, margin=dict(t=10, b=30), showlegend=False)
             rotular_fig(fig_at_ar)
             st.plotly_chart(fig_at_ar, use_container_width=True, key="ar_ating")
 
@@ -933,7 +1209,7 @@ with tab_area:
 
     # Evolução temporal por área
     if "area" in df_ar.columns and "mes_ref" in df_ar.columns:
-        sec("Evolução Temporal por Área")
+        sec("Evolução Mensal de Receita Líquida por Área")
         ts_area = (
             df_ar.groupby(["mes_ref", "area"])["receita_liquida"]
             .sum().reset_index()
@@ -949,7 +1225,7 @@ with tab_area:
 
     # Sub-área — com seletor de área principal
     if "sigla_sub_area" in df_op.columns:
-        sec("Receita por Sub Área")
+        sec("Receita Líquida por Sub Área")
 
         # Filtros independentes para esta seção
         areas_disp = _vals(df_ar, "area")
@@ -1008,19 +1284,79 @@ with tab_area:
 
         tbl(ag_sub)
 
-    # Tabela área × mês
+    # Área × Mês — visualização em mapa de calor (substitui a tabela detalhada)
     if "area" in df_ar.columns and "mes_ref" in df_ar.columns:
-        sec("Tabela — Área × Mês")
-        tbl_am = (
-            df_ar.groupby(["area", df_ar["mes_ref"].dt.strftime("%b/%y").rename("Mês")])
+        sec("Receita Líquida Mensal por Área — Mapa de Calor (R$)")
+
+        df_am_long = (
+            df_ar.groupby(["area", "mes_ref"])
             .agg(
                 receita_liquida =("receita_liquida",  "sum"),
                 receita_prevista=("receita_prevista", "sum"),
                 custo_total     =("custo_total",      "sum"),
             )
             .reset_index()
+            .sort_values("mes_ref")
         )
-        tbl(tbl_am)
+        df_am_long["Mês"] = df_am_long["mes_ref"].dt.strftime("%b/%y")
+
+        # Métrica selecionável para o mapa de calor
+        opcoes_metrica = {
+            "Receita Líquida":  "receita_liquida",
+            "Receita Prevista": "receita_prevista",
+            "Custo Total":      "custo_total",
+        }
+        metrica_lbl = st.radio(
+            "Métrica exibida no mapa de calor",
+            list(opcoes_metrica.keys()),
+            horizontal=True,
+            key="ar_heat_metrica",
+        )
+        col_metrica = opcoes_metrica[metrica_lbl]
+
+        # Pivota Área × Mês preservando a ordem cronológica dos meses
+        ordem_meses = (
+            df_am_long.drop_duplicates("mes_ref")
+            .sort_values("mes_ref")["Mês"].tolist()
+        )
+        pivot_am = (
+            df_am_long.pivot(index="area", columns="Mês", values=col_metrica)
+            .reindex(columns=ordem_meses)
+        )
+
+        if pivot_am.empty:
+            st.info("Sem dados suficientes para montar o mapa de calor.")
+        else:
+            fig_heat_am = px.imshow(
+                pivot_am,
+                color_continuous_scale="Blues",
+                aspect="auto",
+                text_auto=".2s",
+                labels={
+                    "x": "Mês",
+                    "y": "Área",
+                    "color": f"{metrica_lbl} (R$)",
+                },
+            )
+            fig_heat_am.update_layout(height=320, margin=dict(t=20, b=30))
+            st.plotly_chart(fig_heat_am, use_container_width=True, key="ar_heat_am")
+
+        # Download CSV completo com as três métricas, mantendo o detalhamento da tabela original
+        tbl_am_csv = df_am_long[
+            ["area", "Mês", "receita_liquida", "receita_prevista", "custo_total"]
+        ].rename(columns={
+            "area": "Área",
+            "receita_liquida": "Receita Líquida (R$)",
+            "receita_prevista": "Receita Prevista (R$)",
+            "custo_total": "Custo Total (R$)",
+        })
+        st.download_button(
+            label="Baixar CSV — Área × Mês (completo)",
+            data=tbl_am_csv.to_csv(index=False).encode("utf-8"),
+            file_name="area_x_mes.csv",
+            mime="text/csv",
+            key="dl_ar_am",
+        )
 
     st.download_button(
         label="Baixar CSV",
@@ -1060,7 +1396,7 @@ with tab_proj:
             )
             ag_proj = ag_proj.merge(area_proj, on="projeto", how="left")
 
-        sec("Ranking de Receita por Projeto")
+        sec("Ranking de Receita Líquida por Projeto (R$)")
         fig_rank = px.bar(
             ag_proj.sort_values("receita_liquida"),
             x="receita_liquida", y="projeto", orientation="h",
@@ -1074,7 +1410,7 @@ with tab_proj:
 
         col_sc, col_tm = st.columns(2)
         with col_sc:
-            sec("Atingimento × Desvio por Projeto")
+            sec("Atingimento (%) × Desvio (R$) por Projeto")
             fig_scat = px.scatter(
                 ag_proj, x="desvio_abs", y="atingimento_pct", text="projeto",
                 color="area" if "area" in ag_proj.columns else "projeto",
@@ -1092,7 +1428,7 @@ with tab_proj:
             st.plotly_chart(fig_scat, use_container_width=True, key="pr_scatter")
 
         with col_tm:
-            sec("Participação de Receita — Treemap")
+            sec("Participação na Receita Líquida — Treemap por Área e Projeto")
             path_cols = ["area", "projeto"] if "area" in ag_proj.columns else ["projeto"]
             fig_tree = px.treemap(
                 ag_proj, path=path_cols, values="receita_liquida",
@@ -1104,7 +1440,7 @@ with tab_proj:
             fig_tree.update_layout(height=360, margin=dict(t=10, b=10))
             st.plotly_chart(fig_tree, use_container_width=True, key="pr_treemap")
 
-        sec("Métricas por Projeto")
+        sec("Tabela Detalhada de Métricas Financeiras por Projeto")
         tbl(ag_proj.sort_values("receita_liquida", ascending=False))
 
     st.download_button(
@@ -1138,7 +1474,7 @@ with tab_desvios:
             )
             ag_dev = ag_dev.merge(area_d, on="projeto", how="left")
 
-        sec("Ranking de Desvios por Projeto")
+        sec("Ranking de Desvio Absoluto (R$) por Projeto — Realizado − Previsto")
         ag_dev_sorted = ag_dev.sort_values("desvio_abs")
         fig_dv_bar = px.bar(
             ag_dev_sorted, x="desvio_abs", y="projeto", orientation="h",
@@ -1168,7 +1504,7 @@ with tab_desvios:
             st.success("Todos os projetos com atingimento ≥ 90%.")
 
     if all(c in df_dv.columns for c in ["allowance", "contingencia"]) and "area" in df_dv.columns:
-        sec("Breakdown de Custos por Área — Allowance & Contingência")
+        sec("Decomposição do Custo Total por Área — Allowance × Contingência (R$)")
         ag_custo = df_dv.groupby("area").agg(
             allowance   =("allowance",    "sum"),
             contingencia=("contingencia", "sum"),
@@ -1186,13 +1522,20 @@ with tab_desvios:
         st.plotly_chart(fig_custo, use_container_width=True, key="dv_custo")
 
     if all(c in df_dv.columns for c in ["projeto", "mes_ref", "atingimento_pct"]):
-        sec("Heatmap — Atingimento (%) por Projeto × Mês")
+        sec("Mapa de Calor — Atingimento de Receita (%) por Projeto × Mês")
         df_heat = df_dv.copy()
         df_heat["Mês"] = df_heat["mes_ref"].dt.strftime("%b/%y")
+        # Ordem cronológica dos meses (preserva a sequência real de mes_ref)
+        ordem_meses = (
+            df_heat.dropna(subset=["mes_ref"])
+            .drop_duplicates("mes_ref")
+            .sort_values("mes_ref")["Mês"].tolist()
+        )
         pivot = (
             df_heat.groupby(["projeto", "Mês"])["atingimento_pct"]
             .mean().reset_index()
             .pivot(index="projeto", columns="Mês", values="atingimento_pct")
+            .reindex(columns=ordem_meses)
         )
         if not pivot.empty:
             fig_heat = px.imshow(
@@ -1201,6 +1544,7 @@ with tab_desvios:
                 aspect="auto", zmin=60, zmax=140, text_auto=".0f",
                 labels={"color": "Atingimento (%)"},
             )
+            fig_heat.update_xaxes(categoryorder="array", categoryarray=ordem_meses)
             fig_heat.update_layout(height=380, margin=dict(t=10, b=30))
             st.plotly_chart(fig_heat, use_container_width=True, key="dv_heatmap")
 

@@ -1,5 +1,21 @@
 [
   {
+    "id": "conv_20260426110600804905",
+    "title": "Quais são os melhores projetos em termo de…",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Quais são os melhores projetos em termo de receita?"
+      },
+      {
+        "role": "assistant",
+        "content": "⚠️ **GROQ_API_KEY** não configurada. Adicione no `.env`:\n```\nGROQ_API_KEY=gsk_...\n```"
+      }
+    ],
+    "kpis": [],
+    "created_at": "2026-04-26T11:06:00.804905"
+  },
+  {
     "id": "conv_20260423213030485873",
     "title": "Quais KPIs estão abaixo da meta e por quan…",
     "messages": [
