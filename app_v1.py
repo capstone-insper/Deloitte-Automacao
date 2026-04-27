@@ -1,5 +1,5 @@
 """
-Dashboard Executivo — Delloite
+Dashboard Executivo — Deloitte
 ==============================
 Lê diretamente os arquivos .txt da pasta entrada/ e gera
 um dashboard executivo interativo sem dependência de ETL prévio.
@@ -9,7 +9,7 @@ Para rodar:
     ou
     python -m streamlit run app_v1.py
 """
-
+from __future__ import annotations
 import hashlib
 import os
 import re
@@ -38,7 +38,7 @@ create_db()
 # ─────────────────────────────────────────────────────────────────────────────
 
 st.set_page_config(
-    page_title="Dashboard Executivo — Delloite",
+    page_title="Dashboard Executivo — Deloitte",
     layout="wide",
 )
 
@@ -90,7 +90,7 @@ if not st.session_state.logged_in:
         st.session_state.username = saved_user
 
 if not st.session_state.logged_in:
-    st.title("Login - Dashboard Executivo — Delloite")
+    st.title("Login - Dashboard Executivo — Deloitte")
     username = st.text_input("Usuário")
     password = st.text_input("Senha", type="password")
     if st.button("Entrar"):
@@ -697,7 +697,7 @@ if df_op_full.empty:
 # TÍTULO + PERÍODO DE ANÁLISE (controles globais no topo do dashboard)
 # ─────────────────────────────────────────────────────────────────────────────
 
-st.title("Dashboard Executivo — Delloite")
+st.title("Dashboard Executivo — Deloitte")
 
 # Botão de logout
 if st.button("Logout"):

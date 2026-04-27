@@ -9,7 +9,7 @@ Variável de ambiente obrigatória (defina no .env):
 
 Histórico salvo em: historico_chat.json (mesma pasta do app_v1.py)
 """
-
+from __future__ import annotations
 import os
 import json
 import re
@@ -344,7 +344,7 @@ def _render_sidebar():
     _init_state()
     with st.sidebar:
         st.markdown(_CHAT_CSS, unsafe_allow_html=True)
-        st.markdown('<div class="sidebar-header">✦ Assistente Delloite</div>', unsafe_allow_html=True)
+        st.markdown('<div class="sidebar-header">✦ Assistente Deloitte</div>', unsafe_allow_html=True)
 
         if st.button("＋  Nova conversa", key="btn_nova", use_container_width=True):
             _nova_conversa()
@@ -412,7 +412,7 @@ def render_kpi_agent(df: pd.DataFrame | None = None):
         _nova_conversa()
         conv = _get_active()
 
-    st.markdown('<div class="sec-header">Seu assistente Delloite</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-header">Seu assistente Deloitte</div>', unsafe_allow_html=True)
     st.caption("Pergunte sobre qualquer KPI, solicite cálculos ou peça para adicionar novas métricas.")
 
     # KPIs adicionados

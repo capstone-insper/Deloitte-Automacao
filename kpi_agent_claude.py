@@ -7,7 +7,7 @@ Chame `render_kpi_agent(df_op)` dentro de uma aba do Streamlit.
 Variável de ambiente obrigatória (defina no .env):
     ANTHROPIC_API_KEY=sk-ant-...
 """
-
+from __future__ import annotations
 import os
 import json
 
