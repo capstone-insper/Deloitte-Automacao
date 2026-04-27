@@ -1,5 +1,133 @@
 [
   {
+    "id": "conv_20260427134941247012",
+    "title": "Adicione KPI de atingimento médio por área",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Adicione KPI de atingimento médio por área"
+      },
+      {
+        "role": "assistant",
+        "content": "Para adicionar o KPI de atingimento médio por área, precisamos calcular a média do atingimento por área. \n\nA fórmula para atingimento é: (Receita Líquida / Receita Prevista) x 100.\n\nOs dados por área são:\n- Área SL01: rl=R$20,776 | rp=R$20,182\n- Área SL02: rl=R$9,522 | rp=R$9,081\n\nAtingimento para SL01 = (20,776 / 20,182) x 100 = 102.9%\nAtingimento para SL02 = (9,522 / 9,081) x 100 = 104.9%\n\nMédia do atingimento por área = (102.9 + 104.9) / 2 = 103.9%\n\nAqui está o bloco JSON para adicionar o KPI:\n```json\n{\n  \"acao\": \"adicionar_kpi\",\n  \"nome\": \"Atingimento Médio por Área\",\n  \"formula\": \"(Receita Líquida / Receita Prevista) x 100\",\n  \"valor\": 103.9,\n  \"contexto\": \"Média do atingimento por área\"\n}\n```"
+      }
+    ],
+    "kpis": [
+      {
+        "acao": "adicionar_kpi",
+        "nome": "Atingimento Médio por Área",
+        "formula": "(Receita Líquida / Receita Prevista) x 100",
+        "valor": 103.9,
+        "contexto": "Média do atingimento por área"
+      }
+    ],
+    "created_at": "2026-04-27T13:49:41.247012"
+  },
+  {
+    "id": "conv_20260427134542495949",
+    "title": "O que é allowance?",
+    "messages": [
+      {
+        "role": "user",
+        "content": "O que é allowance?"
+      },
+      {
+        "role": "assistant",
+        "content": "O Allowance é um lançamento contábil que representa um valor a ser estornado no mês seguinte. Ele é igual ou superior a zero. No contexto do projeto, o Allowance é utilizado para ajustar a receita líquida e calcular a receita ajustada. \n\nPor exemplo, suponha que a receita líquida seja R$1.000 e o Allowance seja R$200. Nesse caso, a receita ajustada seria R$1.000 - R$200 = R$800.\n\nNo contexto dos dados reais fornecidos, o total de Allowance é R$29.911, com uma média de R$1.300. Isso significa que, em média, R$1.300 de receita líquida foi ajustada por mês devido ao Allowance."
+      },
+      {
+        "role": "user",
+        "content": "entendi"
+      },
+      {
+        "role": "assistant",
+        "content": "O Allowance é um conceito importante para entender os ajustes feitos na receita líquida e calcular a receita ajustada. Se tiver mais alguma dúvida ou quiser saber mais sobre outros conceitos financeiros, estou aqui para ajudar!"
+      }
+    ],
+    "kpis": [],
+    "created_at": "2026-04-27T13:45:42.495949"
+  },
+  {
+    "id": "conv_20260427133345569412",
+    "title": "Sugira 3 KPIs para o board",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Sugira 3 KPIs para o board"
+      },
+      {
+        "role": "assistant",
+        "content": "Para criar um painel de controle eficaz, sugiro os seguintes 3 KPIs:\n\n1. **Taxa de Atingimento de Receita** (Atingimento %): \n   - Fórmula: (Receita Líquida / Receita Prevista) × 100\n   - Valor: 104,4% (média)\n   - Importância: Mede a eficácia em alcançar as metas de receita.\n\n2. **Margem de Contribuição** (%):\n   - Fórmula: (Receita Líquida - Custo Total) / Receita Líquida × 100\n   - Valor: (R$30,298 - (R$29,911 + R$29,009)) / R$30,298 × 100 = -94,3% (não é um valor padrão devido aos custos serem maiores que a receita líquida)\n   - Importância: Avalia a rentabilidade, considerando os custos variáveis.\n\n3. **Desvio de Receita** (%):\n   - Fórmula: (Receita Líquida - Receita Prevista) / Receita Prevista × 100\n   - Valor: (R$30,298 - R$29,263) / R$29,263 × 100 = 3,5%\n   - Importância: Indica a precisão das previsões de receita.\n\nEsses KPIs oferecem uma visão geral da saúde financeira da empresa, mostrando a capacidade de atingir metas de receita, a margem de contribuição e a precisão das previsões de receita. \nAqui está um exemplo de como esses KPIs podem ser representados em JSON para inclusão no painel:\n```json\n[\n  {\n    \"acao\": \"adicionar_kpi\",\n    \"nome\": \"Taxa de Atingimento de Receita\",\n    \"formula\": \"(Receita Líquida / Receita Prevista) × 100\",\n    \"valor\": \"104,4%\",\n    \"contexto\": \"Média de atingimento de receita\"\n  },\n  {\n    \"acao\": \"adicionar_kpi\",\n    \"nome\": \"Margem de Contribuição\",\n    \"formula\": \"(Receita Líquida - Custo Total) / Receita Líquida × 100\",\n    \"valor\": \"-94,3%\",\n    \"contexto\": \"Rentabilidade considerando custos variáveis\"\n  },\n  {\n    \"acao\": \"adicionar_kpi\",\n    \"nome\": \"Desvio de Receita\",\n    \"formula\": \"(Receita Líquida - Receita Prevista) / Receita Prevista × 100\",\n    \"valor\": \"3,5%\",\n    \"contexto\": \"Precisão das previsões de receita\"\n  }\n]\n```"
+      }
+    ],
+    "kpis": [],
+    "created_at": "2026-04-27T13:33:45.569412"
+  },
+  {
+    "id": "conv_20260427133245670921",
+    "title": "Qual o desvio percentual de SL01?",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Qual o desvio percentual de SL01?"
+      },
+      {
+        "role": "assistant",
+        "content": "O desvio percentual de SL01 é de 2,9%. Isso significa que a receita líquida da área SL01 foi 2,9% maior do que a receita prevista. \n\nCálculo: \nDesvio percentual = ((Receita Líquida - Receita Prevista) / Receita Prevista) × 100\n= ((R$20.776 - R$20.182) / R$20.182) × 100\n= (R$594 / R$20.182) × 100\n= 2,9%"
+      }
+    ],
+    "kpis": [],
+    "created_at": "2026-04-27T13:32:45.670921"
+  },
+  {
+    "id": "conv_20260427132818220995",
+    "title": "Qual o desvio percentual de SL01?",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Qual o desvio percentual de SL01?"
+      },
+      {
+        "role": "assistant",
+        "content": "O desvio percentual de SL01 é de 2,9%. Isso significa que a receita líquida realizada pela área SL01 foi 2,9% maior do que a receita prevista. \n\nCálculo: \nDesvio percentual = ((Receita Líquida - Receita Prevista) / Receita Prevista) × 100\n= ((R$20.776 - R$20.182) / R$20.182) × 100\n= (R$594 / R$20.182) × 100\n= 2,9%"
+      },
+      {
+        "role": "user",
+        "content": "quantos projetos eu tenho?"
+      },
+      {
+        "role": "assistant",
+        "content": "De acordo com os dados fornecidos, você tem 10 projetos, identificados como P1 a P10. No entanto, apenas os 5 projetos com maiores receitas líquidas são mencionados explicitamente: P10, P2, P3, P9 e P1."
+      },
+      {
+        "role": "user",
+        "content": "entendi"
+      },
+      {
+        "role": "assistant",
+        "content": "Se tiver mais alguma dúvida ou precisar de mais informações, basta perguntar! Estou aqui para ajudar."
+      }
+    ],
+    "kpis": [],
+    "created_at": "2026-04-27T13:28:18.220995"
+  },
+  {
+    "id": "conv_20260427132319138733",
+    "title": "Adicione KPI de atingimento médio por área",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Adicione KPI de atingimento médio por área"
+      },
+      {
+        "role": "assistant",
+        "content": "⚠️ **GROQ_API_KEY** não configurada. Adicione no `.env`:\n```\nGROQ_API_KEY=gsk_...\n```"
+      }
+    ],
+    "kpis": [],
+    "created_at": "2026-04-27T13:23:19.138733"
+  },
+  {
     "id": "conv_20260427132035729056",
     "title": "quantos projetos tenho?",
     "messages": [
