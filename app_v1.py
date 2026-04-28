@@ -11,11 +11,13 @@ Para rodar:
 """
 from __future__ import annotations
 import hashlib
+import html
 import os
 import re
 import unicodedata
 import warnings
 from pathlib import Path
+from urllib.parse import urlencode
 from kpi_agent import render_kpi_agent, _render_sidebar, _init_state
 from database import verify_user, create_db
 
@@ -157,6 +159,43 @@ st.markdown("""
     background: #fdecea; border-left: 4px solid #E74C3C;
     padding: 10px 14px; border-radius: 4px; margin: 4px 0; font-size: 13px;
 }
+/* Navegação customizada com aparência de abas do Streamlit.
+   Usa botões, não links, para não abrir uma nova guia no navegador. */
+.dlt-tabbar-line {
+    border-bottom: 1px solid rgba(49, 51, 63, 0.20);
+    margin-top: -0.25rem;
+    margin-bottom: 1.1rem;
+}
+/* Em versões recentes do Streamlit, widgets com key recebem uma classe st-key-... .
+   O seletor abaixo limita o visual de abas apenas aos botões da navegação. */
+div[class*="st-key-navtab_"] button {
+    min-height: 2.75rem;
+    padding: 0.75rem 0.55rem 0.65rem 0.55rem;
+    border: 0 !important;
+    border-radius: 0 !important;
+    border-bottom: 2px solid transparent !important;
+    background: transparent !important;
+    color: rgba(49, 51, 63, 0.78) !important;
+    box-shadow: none !important;
+    font-size: 0.92rem;
+    font-weight: 400;
+    white-space: nowrap;
+}
+div[class*="st-key-navtab_"] button:hover {
+    color: #012169 !important;
+    background: rgba(49, 51, 63, 0.04) !important;
+}
+div[class*="st-key-navtab_"] button[kind="primary"] {
+    color: #012169 !important;
+    border-bottom: 2px solid #86BC25 !important;
+    font-weight: 600 !important;
+}
+div[class*="st-key-navtab_"] button:focus,
+div[class*="st-key-navtab_"] button:active {
+    box-shadow: none !important;
+    outline: none !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -822,17 +861,26 @@ st.markdown("---")
 _init_state()
 _render_sidebar()
 
+# Compatibilidade com cliques vindos do histórico do assistente.
+# Importante: não renderizar o assistente antes das abas e não usar st.stop(),
+# porque isso escondia o dashboard quando uma nova conversa era criada.
 if st.session_state.get("_jump_to_assistant", False):
     st.session_state._jump_to_assistant = False
-    render_kpi_agent(df=df_op)
-    st.stop()
+    st.session_state["active_dashboard_tab"] = "✦ Assistente de KPIs"
+    try:
+        st.query_params["tab"] = "✦ Assistente de KPIs"
+    except Exception:
+        pass
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ABAS
+# ABAS COM APARÊNCIA ORIGINAL E ESTADO PERSISTENTE
 # ─────────────────────────────────────────────────────────────────────────────
+# Observação: st.tabs() puro não permite controlar a aba ativa depois de um
+# st.rerun(). Como o chat precisa fazer rerun, usamos botões estilizados como
+# abas. Assim, o clique muda a aba na mesma guia do navegador e o estado fica
+# preservado em st.session_state.
 
-(tab_resumo, tab_kpi, tab_temporal,
- tab_area, tab_proj, tab_desvios, tab_dados, tab_dicionario, tab_agente) = st.tabs([
+TAB_LABELS = [
     "Resumo",
     "KPIs Executivos",
     "Série Temporal",
@@ -842,20 +890,60 @@ if st.session_state.get("_jump_to_assistant", False):
     "Dados",
     "Dicionário",
     "✦ Assistente de KPIs",
-])
+]
 
-# Se um conversa foi selecionada no sidebar, ir direto para o assistente
-if st.session_state.get("_jump_to_assistant", False):
-    st.session_state._jump_to_assistant = False
-    with tab_agente:
-        render_kpi_agent(df=df_op)
-    st.stop()  # Parar aqui para não renderizar o resto das abas
+query_tab = st.query_params.get("tab", "")
+if isinstance(query_tab, list):
+    query_tab = query_tab[0] if query_tab else ""
+
+if query_tab in TAB_LABELS:
+    selected_tab = query_tab
+elif st.session_state.get("active_dashboard_tab") in TAB_LABELS:
+    selected_tab = st.session_state["active_dashboard_tab"]
+else:
+    selected_tab = TAB_LABELS[0]
+
+st.session_state["active_dashboard_tab"] = selected_tab
+
+# Mantém o parâmetro de aba na URL para que qualquer rerun preserve a aba ativa.
+try:
+    st.query_params["tab"] = selected_tab
+except Exception:
+    pass
+
+def _tab_key(label: str) -> str:
+    slug = unicodedata.normalize("NFKD", label).encode("ascii", "ignore").decode("ascii")
+    slug = re.sub(r"[^a-zA-Z0-9]+", "_", slug).strip("_").lower()
+    return f"navtab_{slug or 'aba'}"
+
+def _select_tab(label: str) -> None:
+    st.session_state["active_dashboard_tab"] = label
+    try:
+        st.query_params["tab"] = label
+    except Exception:
+        pass
+
+# Botões em colunas: não usam href, então não abrem nova guia.
+# O CSS acima deixa esses botões com aparência próxima às abas originais.
+tab_cols = st.columns([1.0, 1.35, 1.25, 0.85, 0.95, 1.35, 0.75, 0.95, 1.65], gap="small")
+for col, label in zip(tab_cols, TAB_LABELS):
+    with col:
+        if st.button(
+            label,
+            key=_tab_key(label),
+            type="primary" if label == selected_tab else "secondary",
+            use_container_width=True,
+        ):
+            _select_tab(label)
+            st.rerun()
+
+st.markdown('<div class="dlt-tabbar-line"></div>', unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ABA 1 — RESUMO
 # ══════════════════════════════════════════════════════════════════════════════
 
-with tab_resumo:
+if selected_tab == "Resumo":
     df_res = filtros(df_op, com_data=True, sufixo="res")
 
     rl_tot = df_res["receita_liquida"].sum()
@@ -979,7 +1067,7 @@ with tab_resumo:
 # ABA 2 — KPIs EXECUTIVOS
 # ══════════════════════════════════════════════════════════════════════════════
 
-with tab_kpi:
+if selected_tab == "KPIs Executivos":
     df_kp = filtros(df_op, com_area=True, com_data=True, sufixo="kpi")
 
     rl  = df_kp["receita_liquida"].sum()
@@ -1074,7 +1162,7 @@ with tab_kpi:
 # ABA 3 — SÉRIE TEMPORAL
 # ══════════════════════════════════════════════════════════════════════════════
 
-with tab_temporal:
+if selected_tab == "Série Temporal":
     df_ts = filtros(df_op, com_area=True, com_data=True, sufixo="ts")
 
     if modo_periodo == "fy" and fy_sel is not None:
@@ -1246,7 +1334,7 @@ with tab_temporal:
 # ABA 4 — ÁREAS
 # ══════════════════════════════════════════════════════════════════════════════
 
-with tab_area:
+if selected_tab == "Áreas":
     df_ar = filtros(df_op, com_area=True, com_data=True, sufixo="ar")
 
     sec("Orçado × Realizado por Área — Receita e Custo")
@@ -1469,7 +1557,7 @@ with tab_area:
 # ABA 5 — PROJETOS
 # ══════════════════════════════════════════════════════════════════════════════
 
-with tab_proj:
+if selected_tab == "Projetos":
     df_pr = filtros(df_op, com_area=True, com_projeto=True, com_data=True, sufixo="pr")
 
     if "projeto" not in df_pr.columns:
@@ -1554,7 +1642,7 @@ with tab_proj:
 # ABA 6 — DESVIOS & ALERTAS
 # ══════════════════════════════════════════════════════════════════════════════
 
-with tab_desvios:
+if selected_tab == "Desvios & Alertas":
     df_dv = filtros(df_op, com_area=True, com_projeto=True, com_data=True, sufixo="dv")
 
     if "projeto" in df_dv.columns:
@@ -1659,7 +1747,7 @@ with tab_desvios:
 # ABA 7 — DADOS
 # ══════════════════════════════════════════════════════════════════════════════
 
-with tab_dados:
+if selected_tab == "Dados":
     df_dd = filtros(
         df_op,
         com_area=True, com_projeto=True, com_subarea=True,
@@ -1706,7 +1794,7 @@ with tab_dados:
 # ABA 8 — DICIONÁRIO DE DADOS
 # ══════════════════════════════════════════════════════════════════════════════
 
-with tab_dicionario:
+if selected_tab == "Dicionário":
     sec("Dicionário de Dados — Arquivo 1  (Base Operacional: Funcionário / Projeto / Quinzena)")
     st.caption(
         "Granularidade: uma linha por funcionário × projeto × quinzena × mês. "
@@ -1879,5 +1967,5 @@ with tab_dicionario:
 # ABA 9 — ASSISTENTE DE KPIs (IA)
 # ══════════════════════════════════════════════════════════════════════════════
 
-with tab_agente:
+if selected_tab == "✦ Assistente de KPIs":
     render_kpi_agent(df=df_op)

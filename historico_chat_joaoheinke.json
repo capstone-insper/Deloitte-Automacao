@@ -1,5 +1,111 @@
 [
   {
+    "id": "conv_20260428133424744123",
+    "title": "Adicione KPI de atingimento médio por área",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Adicione KPI de atingimento médio por área"
+      },
+      {
+        "role": "assistant",
+        "content": "Para calcular o atingimento médio por área, precisamos primeiro entender o que é atingimento e como ele é calculado. O atingimento é calculado como a receita líquida dividida pela receita prevista, multiplicado por 100.\n\nDada a informação do problema, temos os seguintes valores para as áreas:\n\n- Área SL01: \n  - Receita Líquida (rl): R$20,776\n  - Receita Prevista (rp): R$20,182\n\n- Área SL02: \n  - Receita Líquida (rl): R$9,522\n  - Receita Prevista (rp): R$9,081\n\nVamos calcular o atingimento para cada área:\n\n- Área SL01:\n  - Atingimento (%) = (R$20,776 / R$20,182) * 100 = 103.0%\n\n- Área SL02:\n  - Atingimento (%) = (R$9,522 / R$9,081) * 100 = 104.9%\n\nPara calcular o atingimento médio por área, podemos fazer uma média simples desses valores:\n\n- Atingimento Médio por Área = (103.0% + 104.9%) / 2 = 103.95%\n\nAgora, vamos adicionar esse KPI ao nosso dashboard:\n\n```json\n{\n  \"acao\": \"adicionar_kpi\",\n  \"nome\": \"Atingimento Médio por Área\",\n  \"formula\": \"(Somatório da Receita Líquida por Área / Somatório da Receita Prevista por Área) * 100\",\n  \"valor\": \"103.95%\",\n  \"contexto\": \"Média do atingimento de receita líquida em relação à receita prevista por área\"\n}\n```"
+      }
+    ],
+    "kpis": [],
+    "created_at": "2026-04-28T13:34:24.744123"
+  },
+  {
+    "id": "conv_20260428132925259200",
+    "title": "Adicione KPI de atingimento médio por área",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Adicione KPI de atingimento médio por área"
+      },
+      {
+        "role": "assistant",
+        "content": "Para adicionar o KPI de atingimento médio por área, primeiro, precisamos entender a fórmula para o atingimento, que é:\nAtingimento (%) = (Receita Líquida / Receita Prevista) * 100\n\nCom base nos dados fornecidos, podemos calcular o atingimento médio por área diretamente, pois já temos os valores de receita líquida e receita prevista por área.\n\n- Área SL01: Atingimento (%) = (20,776 / 20,182) * 100 = 102.9%\n- Área SL02: Atingimento (%) = (9,522 / 9,081) * 100 = 104.9%\n\nAgora, vamos adicionar esses cálculos como um novo KPI no formato solicitado:\n\n```json\n{\n  \"acao\": \"adicionar_kpi\",\n  \"nome\": \"Atingimento Médio por Área\",\n  \"formula\": \"(Receita Líquida / Receita Prevista) * 100\",\n  \"valor\": {\n    \"SL01\": 102.9,\n    \"SL02\": 104.9\n  },\n  \"contexto\": \"Por Área\"\n}\n```"
+      }
+    ],
+    "kpis": [
+      {
+        "acao": "adicionar_kpi",
+        "nome": "Atingimento Médio por Área",
+        "formula": "(Receita Líquida / Receita Prevista) * 100",
+        "valor": {
+          "SL01": 102.9,
+          "SL02": 104.9
+        },
+        "contexto": "Por Área"
+      }
+    ],
+    "created_at": "2026-04-28T13:29:25.259200"
+  },
+  {
+    "id": "conv_20260428132809707756",
+    "title": "O que é allowance?",
+    "messages": [
+      {
+        "role": "user",
+        "content": "O que é allowance?"
+      },
+      {
+        "role": "assistant",
+        "content": "O Allowance é um lançamento contábil que representa uma reserva ou provisionamento para despesas ou receitas que ainda não ocorreram, mas são esperadas. No contexto do seu projeto, o Allowance é uma quantia que será estornada no mês seguinte.\n\nEm outras palavras, o Allowance é um valor que é provisionado para cobrir despesas ou perdas potenciais, e será revertido quando a despesa for efetivamente realizada ou quando a perda for confirmada.\n\nNo seu caso, o Allowance está relacionado à receita líquida e é utilizado para calcular a Receita Ajustada, que é a receita líquida menos o Allowance e a Contingência. Isso significa que o Allowance é uma dedução da receita líquida para refletir a provisão para despesas ou perdas futuras.\n\nExemplo:\nReceita Líquida: R$10.000\nAllowance: R$1.000\nContingência: R$500\nReceita Ajustada: R$10.000 - R$1.000 - R$500 = R$8.500\n\nNesse exemplo, a Receita Ajustada é R$8.500, que é a receita líquida menos o Allowance (R$1.000) e a Contingência (R$500)."
+      }
+    ],
+    "kpis": [],
+    "created_at": "2026-04-28T13:28:09.707756"
+  },
+  {
+    "id": "conv_20260428132758633710",
+    "title": "Qual o desvio percentual de SL01?",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Qual o desvio percentual de SL01?"
+      },
+      {
+        "role": "assistant",
+        "content": "O desvio percentual de SL01 é de 2,9%. Isso significa que a receita líquida-realizada foi 2,9% maior do que a receita prevista para essa área. \n\nCálculo: ((Receita Líquida - Receita Prevista) / Receita Prevista) * 100\n= ((20.776 - 20.182) / 20.182) * 100\n= (0,594 / 20,182) * 100\n= 0,0294 * 100\n= 2,94% ≈ 2,9%"
+      }
+    ],
+    "kpis": [],
+    "created_at": "2026-04-28T13:27:58.633710"
+  },
+  {
+    "id": "conv_20260428132307770573",
+    "title": "Nova conversa",
+    "messages": [],
+    "kpis": [],
+    "created_at": "2026-04-28T13:23:07.770573"
+  },
+  {
+    "id": "conv_20260428125627000947",
+    "title": "Calcule a receita ajustada consolidada",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Calcule a receita ajustada consolidada"
+      },
+      {
+        "role": "assistant",
+        "content": "Para calcular a receita ajustada consolidada, utilizamos a fórmula:\n\nReceita Ajustada = Receita Líquida - Allowance - Contingência\n\nCom base nos dados reais fornecidos:\n\n- Receita Líquida (rl): R$30,298\n- Allowance: R$29,911\n- Contingência: R$29,009\n\nReceita Ajustada = R$30,298 - R$29,911 - R$29,009\n\nReceita Ajustada = R$30,298 - R$58,920\n\nReceita Ajustada = -R$28,622\n\nPortanto, a receita ajustada consolidada é de -R$28,622. Este valor já está presente nos dados reais fornecidos como \"receita_ajustada: soma=R$-28,621\", mostrando que o cálculo está correto e condizente com os dados disponíveis."
+      },
+      {
+        "role": "user",
+        "content": "boa, obrigado"
+      },
+      {
+        "role": "assistant",
+        "content": "De nada! Se precisar calcular mais alguma coisa ou tiver alguma dúvida, é só perguntar. Estou aqui para ajudar!"
+      }
+    ],
+    "kpis": [],
+    "created_at": "2026-04-28T12:56:27.000947"
+  },
+  {
     "id": "conv_20260427134941247012",
     "title": "Adicione KPI de atingimento médio por área",
     "messages": [

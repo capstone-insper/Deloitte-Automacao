@@ -251,12 +251,69 @@ def _chamar_api(messages: list[dict], contexto_df: str) -> str:
     return resp.choices[0].message.content
 
 
+def _resumir_valor_complexo(valor) -> str:
+    """Converte valores compostos em um resumo aceito pelo st.metric."""
+    if isinstance(valor, dict):
+        if not valor:
+            return "—"
+        partes = [f"{chave}: {val}" for chave, val in valor.items()]
+        resumo = " | ".join(partes)
+        return resumo if len(resumo) <= 80 else f"{len(valor)} valores"
+    if isinstance(valor, list):
+        if not valor:
+            return "—"
+        resumo = " | ".join(str(item) for item in valor)
+        return resumo if len(resumo) <= 80 else f"{len(valor)} valores"
+    return "—" if valor is None else str(valor)
+
+
+def _normalizar_kpi(kpi: dict) -> dict:
+    """Garante que o KPI salvo possa ser renderizado sem quebrar o app."""
+    kpi = dict(kpi)
+    valor = kpi.get("valor", "—")
+    if isinstance(valor, (dict, list)):
+        kpi.setdefault("detalhes_valor", valor)
+        kpi["valor"] = _resumir_valor_complexo(valor)
+    return kpi
+
+
 def _tentar_parse_kpi(texto: str) -> dict | None:
     try:
         candidato = json.loads(texto[texto.index("{"):texto.rindex("}")+1])
-        return candidato if candidato.get("acao") == "adicionar_kpi" else None
+        if candidato.get("acao") != "adicionar_kpi":
+            return None
+        return _normalizar_kpi(candidato)
     except (ValueError, json.JSONDecodeError):
         return None
+
+
+def _valor_metric_seguro(valor):
+    """Tipos aceitos pelo st.metric: número, texto ou None. Nunca dict/list."""
+    if valor is None:
+        return "—"
+    if isinstance(valor, (int, float, str)):
+        return valor
+    return _resumir_valor_complexo(valor)
+
+
+def _render_detalhes_kpi(kpi: dict):
+    detalhes = kpi.get("detalhes_valor")
+    if detalhes is None:
+        return
+
+    if isinstance(detalhes, dict):
+        df_detalhes = pd.DataFrame(
+            [{"Item": chave, "Valor": valor} for chave, valor in detalhes.items()]
+        )
+        st.dataframe(df_detalhes, hide_index=True, use_container_width=True)
+        return
+
+    if isinstance(detalhes, list):
+        df_detalhes = pd.DataFrame({"Valor": detalhes})
+        st.dataframe(df_detalhes, hide_index=True, use_container_width=True)
+        return
+
+    st.caption(str(detalhes))
 
 
 def _md_to_html(text: str) -> str:
@@ -348,6 +405,11 @@ def _render_sidebar():
 
         if st.button("＋  Nova conversa", key="btn_nova", use_container_width=True):
             _nova_conversa()
+            st.session_state["active_dashboard_tab"] = "✦ Assistente de KPIs"
+            try:
+                st.query_params["tab"] = "✦ Assistente de KPIs"
+            except Exception:
+                pass
             st.session_state._jump_to_assistant = True
             st.rerun()
 
@@ -378,6 +440,11 @@ def _render_sidebar():
                     label_btn = f"{'▶ ' if is_active else ''}{title[:32]}"
                     if st.button(label_btn, key=f"sel_{c['id']}", use_container_width=True):
                         st.session_state.active_conv_id = c["id"]
+                        st.session_state["active_dashboard_tab"] = "✦ Assistente de KPIs"
+                        try:
+                            st.query_params["tab"] = "✦ Assistente de KPIs"
+                        except Exception:
+                            pass
                         st.session_state._jump_to_assistant = True
                         st.rerun()
                 with col_del:
@@ -420,12 +487,14 @@ def render_kpi_agent(df: pd.DataFrame | None = None):
         st.markdown('<div class="kpi-section-title">KPIs adicionados pela IA</div>', unsafe_allow_html=True)
         cols = st.columns(min(len(conv["kpis"]), 4))
         for i, kpi in enumerate(conv["kpis"]):
+            kpi = _normalizar_kpi(kpi)
             with cols[i % 4]:
                 st.metric(
                     label=kpi.get("nome", "KPI"),
-                    value=kpi.get("valor", "—"),
+                    value=_valor_metric_seguro(kpi.get("valor", "—")),
                     help=f"Fórmula: {kpi.get('formula','—')}\n\nContexto: {kpi.get('contexto','—')}",
                 )
+                _render_detalhes_kpi(kpi)
         if st.button("Limpar KPIs", key="btn_limpar_kpis"):
             conv["kpis"] = []
             _salvar_historico()
