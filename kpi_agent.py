@@ -94,6 +94,13 @@ e conhece profundamente os dados e regras de negócio deste projeto específico.
 - Quando o usuário pedir para "adicionar um KPI" ou "incluir uma métrica",
   retorne obrigatoriamente um bloco JSON no seguinte formato:
   {"acao": "adicionar_kpi", "nome": "...", "formula": "...", "valor": "...", "contexto": "..."}
+- Quando o usuário pedir para "gerar um gráfico", "plotar", "mostrar gráfico", "visualizar" ou similar,
+  retorne obrigatoriamente um bloco JSON no seguinte formato:
+  {"acao": "gerar_grafico", "tipo": "bar", "x": "coluna_x", "y": "coluna_y", "color": null, "titulo": "...", "agregacao": "sum"}
+  Tipos válidos: bar (barras), line (linha), pie (pizza), scatter (dispersão).
+  Agregações válidas: sum (soma), mean (média), count (contagem).
+  Use apenas colunas listadas em COLUNAS DISPONÍVEIS no contexto.
+  O campo "color" aceita uma coluna categórica ou null.
 - Para perguntas conceituais, seja direto e didático, com exemplos numéricos
 - Máximo 250 palavras por resposta, salvo quando o usuário pedir detalhes
 """
@@ -159,6 +166,7 @@ def _salvar_historico():
             "title":      c["title"],
             "messages":   c["messages"],
             "kpis":       c["kpis"],
+            "graficos":   c.get("graficos", []),
             "created_at": c["created_at"].isoformat(),
         })
     with open(_get_historico_path(), "w", encoding="utf-8") as f:
@@ -179,6 +187,7 @@ def _carregar_historico() -> list[dict]:
                 "title":      c.get("title", "Conversa"),
                 "messages":   c.get("messages", []),
                 "kpis":       c.get("kpis", []),
+                "graficos":   c.get("graficos", []),
                 "created_at": datetime.fromisoformat(c["created_at"]),
             })
         return result
@@ -192,7 +201,13 @@ def _carregar_historico() -> list[dict]:
 def _resumo_df(df: pd.DataFrame | None) -> str:
     if df is None or df.empty:
         return "Nenhum dado disponível no momento."
-    linhas = [f"Total de registros: {len(df)}"]
+    colunas_num = df.select_dtypes(include="number").columns.tolist()
+    colunas_cat = df.select_dtypes(exclude="number").columns.tolist()
+    linhas = [
+        f"Total de registros: {len(df)}",
+        f"COLUNAS DISPONÍVEIS — numéricas: {colunas_num}",
+        f"COLUNAS DISPONÍVEIS — categóricas/data: {colunas_cat}",
+    ]
     if "mes_ref" in df.columns:
         datas = df["mes_ref"].dropna().sort_values()
         if not datas.empty:
@@ -277,14 +292,37 @@ def _normalizar_kpi(kpi: dict) -> dict:
     return kpi
 
 
-def _tentar_parse_kpi(texto: str) -> dict | None:
-    try:
-        candidato = json.loads(texto[texto.index("{"):texto.rindex("}")+1])
-        if candidato.get("acao") != "adicionar_kpi":
+def _extrair_json(texto: str) -> dict | None:
+    """Extrai e parseia o primeiro objeto JSON do texto.
+    Suporta JSON inline e JSON dentro de blocos markdown ```json ... ```."""
+    # Tenta primeiro extrair de bloco markdown ```json ... ```
+    match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", texto, re.DOTALL)
+    if match:
+        json_str = match.group(1)
+    else:
+        # Fallback: do primeiro { até o último }
+        try:
+            json_str = texto[texto.index("{"):texto.rindex("}")+1]
+        except ValueError:
             return None
-        return _normalizar_kpi(candidato)
-    except (ValueError, json.JSONDecodeError):
+    try:
+        return json.loads(json_str)
+    except json.JSONDecodeError:
         return None
+
+
+def _tentar_parse_kpi(texto: str) -> dict | None:
+    candidato = _extrair_json(texto)
+    if candidato is None or candidato.get("acao") != "adicionar_kpi":
+        return None
+    return _normalizar_kpi(candidato)
+
+
+def _tentar_parse_grafico(texto: str) -> dict | None:
+    candidato = _extrair_json(texto)
+    if candidato is None or candidato.get("acao") != "gerar_grafico":
+        return None
+    return candidato
 
 
 def _valor_metric_seguro(valor):
@@ -314,6 +352,47 @@ def _render_detalhes_kpi(kpi: dict):
         return
 
     st.caption(str(detalhes))
+
+
+def _render_grafico(spec: dict, df: pd.DataFrame | None, key: str):
+    import plotly.express as px
+    if df is None or df.empty:
+        st.warning("Sem dados para renderizar o gráfico.")
+        return
+
+    tipo      = spec.get("tipo", "bar")
+    x_col     = spec.get("x")
+    y_col     = spec.get("y")
+    color_col = spec.get("color") or None
+    titulo    = spec.get("titulo", "Gráfico")
+    agg_func  = spec.get("agregacao", "sum")
+
+    if x_col not in df.columns or y_col not in df.columns:
+        st.warning(f"Coluna(s) '{x_col}' / '{y_col}' não encontrada(s) nos dados.")
+        return
+
+    group_cols = [x_col] + ([color_col] if color_col and color_col in df.columns else [])
+    try:
+        df_plot = df.groupby(group_cols)[y_col].agg(agg_func).reset_index()
+    except Exception as e:
+        st.warning(f"Erro ao agregar dados: {e}")
+        return
+
+    color_arg = color_col if color_col and color_col in df_plot.columns else None
+
+    try:
+        if tipo == "line":
+            fig = px.line(df_plot, x=x_col, y=y_col, color=color_arg, title=titulo, markers=True)
+        elif tipo == "pie":
+            fig = px.pie(df_plot, names=x_col, values=y_col, title=titulo)
+        elif tipo == "scatter":
+            fig = px.scatter(df_plot, x=x_col, y=y_col, color=color_arg, title=titulo)
+        else:
+            fig = px.bar(df_plot, x=x_col, y=y_col, color=color_arg, title=titulo, barmode="group")
+        fig.update_layout(height=350, margin=dict(t=50, b=30, l=30, r=30))
+        st.plotly_chart(fig, use_container_width=True, key=key)
+    except Exception as e:
+        st.warning(f"Erro ao gerar gráfico: {e}")
 
 
 def _md_to_html(text: str) -> str:
@@ -379,7 +458,7 @@ def _init_state():
 
 def _nova_conversa() -> str:
     conv_id = f"conv_{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
-    conv = {"id": conv_id, "title": "Nova conversa", "messages": [], "kpis": [], "created_at": datetime.now()}
+    conv = {"id": conv_id, "title": "Nova conversa", "messages": [], "kpis": [], "graficos": [], "created_at": datetime.now()}
     st.session_state.conversations.insert(0, conv)
     st.session_state.active_conv_id = conv_id
     _salvar_historico()
@@ -501,6 +580,18 @@ def render_kpi_agent(df: pd.DataFrame | None = None):
             st.rerun()
         st.divider()
 
+    # Gráficos gerados pela IA
+    graficos = conv.get("graficos", [])
+    if graficos:
+        st.markdown('<div class="kpi-section-title">Gráficos gerados pela IA</div>', unsafe_allow_html=True)
+        for i, spec in enumerate(graficos):
+            _render_grafico(spec, df, key=f"ai_chart_{conv['id']}_{i}")
+        if st.button("Limpar Gráficos", key="btn_limpar_graficos"):
+            conv["graficos"] = []
+            _salvar_historico()
+            st.rerun()
+        st.divider()
+
     # Estado vazio
     if not conv["messages"]:
         st.markdown("""
@@ -513,8 +604,8 @@ def render_kpi_agent(df: pd.DataFrame | None = None):
         perguntas = [
             "Adicione KPI de atingimento médio por área",
             "Qual o desvio percentual de SL01?",
-            "Calcule a receita ajustada consolidada",
-            "Sugira 3 KPIs para o board",
+            "Gere um gráfico de barras de receita líquida por área",
+            "Gere um gráfico de linha da receita líquida por mês",
             "O que é allowance?",
         ]
         cols = st.columns(len(perguntas))
@@ -553,6 +644,14 @@ def _processar_mensagem(prompt: str, conv: dict, df: pd.DataFrame | None):
     kpi_json = _tentar_parse_kpi(resposta)
     if kpi_json:
         conv["kpis"].append(kpi_json)
+
+    grafico_json = _tentar_parse_grafico(resposta)
+    if grafico_json:
+        conv.setdefault("graficos", []).append(grafico_json)
+        # Remove o bloco JSON da mensagem exibida no chat
+        resposta = re.sub(r"```(?:json)?\s*\{.*?\}\s*```", "", resposta, flags=re.DOTALL)
+        resposta = re.sub(r"\{[^{}]*\"acao\"\s*:\s*\"gerar_grafico\"[^{}]*\}", "", resposta, flags=re.DOTALL)
+        resposta = resposta.strip() or "Gráfico gerado acima."
 
     conv["messages"].append({"role": "assistant", "content": resposta})
     _salvar_historico()
