@@ -15,17 +15,18 @@ def create_db():
     conn.commit()
     conn.close()
 
-def add_user(username, password):
+def add_user(username, password) -> bool:
     password_hash = hashlib.sha256(password.encode()).hexdigest()
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     try:
         c.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, password_hash))
         conn.commit()
-        print(f"Usuário {username} adicionado com sucesso.")
+        conn.close()
+        return True
     except sqlite3.IntegrityError:
-        print(f"Usuário {username} já existe.")
-    conn.close()
+        conn.close()
+        return False
 
 def set_user_password(username, password):
     password_hash = hashlib.sha256(password.encode()).hexdigest()

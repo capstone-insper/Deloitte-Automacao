@@ -1,0 +1,18 @@
+[
+  {
+    "id": "conv_20260429150908524078",
+    "title": "ola",
+    "messages": [
+      {
+        "role": "user",
+        "content": "ola"
+      },
+      {
+        "role": "assistant",
+        "content": "Olá! Estou aqui para ajudar com qualquer dúvida ou necessidade relacionada aos KPIs financeiros e ao dashboard. Vamos trabalhar com os dados reais do projeto e explorar as métricas importantes para a área de AI & Data da Deloitte.\n\nO que gostaria de saber ou discutir hoje? Você gostaria de:\n\n1. Entender melhor um KPI específico?\n2. Analisar os dados por área, subárea ou projeto?\n3. Adicionar um novo KPI ou métrica?\n4. Outra coisa?\n\nEstou aqui para ajudar!"
+      }
+    ],
+    "kpis": [],
+    "created_at": "2026-04-29T15:09:08.524122"
+  }
+]

@@ -19,7 +19,7 @@ import warnings
 from pathlib import Path
 from urllib.parse import urlencode
 from kpi_agent import render_kpi_agent, _render_sidebar, _init_state
-from database import verify_user, create_db
+from database import verify_user, create_db, add_user
 
 import numpy as np
 import pandas as pd
@@ -85,6 +85,9 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.username = None
 
+if 'auth_page' not in st.session_state:
+    st.session_state.auth_page = "login"
+
 if not st.session_state.logged_in:
     saved_user = _get_saved_login()
     if saved_user:
@@ -92,18 +95,49 @@ if not st.session_state.logged_in:
         st.session_state.username = saved_user
 
 if not st.session_state.logged_in:
-    st.title("Login - Dashboard Executivo — Deloitte")
-    username = st.text_input("Usuário")
-    password = st.text_input("Senha", type="password")
-    if st.button("Entrar"):
-        if verify_user(username, password):
-            st.session_state.logged_in = True
-            st.session_state.username = username
-            _set_saved_login(username)
-            st.success("Login realizado com sucesso!")
-            st.rerun()
-        else:
-            st.error("Usuário ou senha incorretos.")
+    if st.session_state.auth_page == "register":
+        st.title("Criar Conta — Deloitte")
+        new_username = st.text_input("Usuário")
+        new_password = st.text_input("Senha", type="password")
+        confirm_password = st.text_input("Confirmar Senha", type="password")
+        col_reg, col_back = st.columns(2)
+        with col_reg:
+            if st.button("Criar Conta", use_container_width=True):
+                if not new_username.strip():
+                    st.error("O nome de usuário não pode ser vazio.")
+                elif len(new_password) < 4:
+                    st.error("A senha deve ter pelo menos 4 caracteres.")
+                elif new_password != confirm_password:
+                    st.error("As senhas não coincidem.")
+                elif add_user(new_username.strip(), new_password):
+                    st.session_state.auth_page = "login"
+                    st.success(f"Usuário '{new_username.strip()}' criado com sucesso! Faça login.")
+                    st.rerun()
+                else:
+                    st.error(f"O usuário '{new_username.strip()}' já existe. Escolha outro nome.")
+        with col_back:
+            if st.button("Voltar ao Login", use_container_width=True):
+                st.session_state.auth_page = "login"
+                st.rerun()
+    else:
+        st.title("Login - Dashboard Executivo — Deloitte")
+        username = st.text_input("Usuário")
+        password = st.text_input("Senha", type="password")
+        col_login, col_new = st.columns(2)
+        with col_login:
+            if st.button("Entrar", use_container_width=True):
+                if verify_user(username, password):
+                    st.session_state.logged_in = True
+                    st.session_state.username = username
+                    _set_saved_login(username)
+                    st.success("Login realizado com sucesso!")
+                    st.rerun()
+                else:
+                    st.error("Usuário ou senha incorretos.")
+        with col_new:
+            if st.button("Criar Usuário", use_container_width=True):
+                st.session_state.auth_page = "register"
+                st.rerun()
     st.stop()  # Para a execução se não logado
 
 ROOT = Path(__file__).resolve().parent
