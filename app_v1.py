@@ -48,7 +48,7 @@ st.set_page_config(
 # AUTENTICAÇÃO
 # ─────────────────────────────────────────────────────────────────────────────
 
-AUTH_SECRET = os.getenv("AUTH_SECRET", "delloite_secret_2026")
+AUTH_SECRET = os.getenv("AUTH_SECRET")
 
 
 def _make_login_token(username: str) -> str:
