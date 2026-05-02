@@ -271,11 +271,17 @@ _CHAT_CSS = """
 .msg-sender.user-name { color: #7ba4e8; }
 .msg-ts { font-size: 11px; color: #3a3f50; }
 
-/* Texto da mensagem */
+/* Texto da mensagem — IA: bolha verde igual ao ícone */
 .msg-text {
     font-size: 14px; line-height: 1.72;
-    color: #b8c4d8; word-break: break-word;
+    color: #fff; word-break: break-word;
+    background: linear-gradient(135deg, #86BC25 0%, #5a8a10 100%);
+    padding: 11px 15px;
+    border-radius: 3px 14px 14px 14px;
+    display: inline-block;
+    max-width: 85%;
 }
+.msg-text strong { color: #fff; font-weight: 700; }
 /* Usuário: bolha à direita */
 .msg-text.user-text {
     background: #012169;

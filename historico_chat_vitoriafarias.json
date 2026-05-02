@@ -55,59 +55,5 @@
     "kpis": [],
     "graficos": [],
     "created_at": "2026-05-02T12:15:11.438214"
-  },
-  {
-    "id": "conv_20260502120809698699",
-    "title": "monte um grafico de receita bruta por proj…",
-    "messages": [
-      {
-        "role": "user",
-        "content": "monte um grafico de receita bruta por projeto\n"
-      },
-      {
-        "role": "assistant",
-        "content": "Para gerar um gráfico de receita bruta por projeto, precisamos considerar a receita líquida como base, uma vez que não há uma coluna específica para receita bruta. No entanto, podemos inferir que a receita bruta está relacionada à receita líquida e aos ajustes (ajuste, allowance, contingência) que são aplicados.\n\nAqui está uma sugestão de como gerar esse gráfico:\n\n\n\nNeste gráfico, cada barra representará a receita líquida total de um projeto específico. Se você deseja que o gráfico considere apenas os projetos com maior receita, poderíamos filtrar os dados para exibir apenas os top 5 projetos com maior receita, por exemplo.\n\nLembre-se de que, como não há uma coluna específica para \"Receita Bruta\" nos dados disponíveis, este gráfico estará usando a \"Receita Líquida\" como proxy. Se a receita bruta for calculada de maneira diferente, ajustes adicionais seriam necessários."
-      }
-    ],
-    "kpis": [],
-    "graficos": [
-      {
-        "acao": "gerar_grafico",
-        "tipo": "bar",
-        "x": "projeto",
-        "y": "receita_liquida",
-        "color": null,
-        "titulo": "Receita Bruta por Projeto",
-        "agregacao": "sum"
-      }
-    ],
-    "created_at": "2026-05-02T12:08:09.698699"
-  },
-  {
-    "id": "conv_20260423220751899004",
-    "title": "monte um grafico de receita bruta por proj…",
-    "messages": [
-      {
-        "role": "user",
-        "content": "monte um grafico de receita bruta por projeto"
-      },
-      {
-        "role": "assistant",
-        "content": "Aqui está o bloco JSON para gerar um gráfico de receita bruta por projeto:\n\n\n\nEsse gráfico irá mostrar a receita bruta de cada projeto, com a receita líquida no eixo y e o nome do projeto no eixo x. A agregação utilizada é a soma, pois queremos mostrar o total de receita bruta para cada projeto. \n\nLembre-se de que os dados reais indicam que os projetos com maiores receitas brutas são:\n\n- Projeto P10: R$5,083\n- Projeto P2: R$3,790\n- Projeto P3: R$2,988\n- Projeto P9: R$2,806\n- Projeto P1: R$2,743\n\nEsses projetos devem aparecer com as barras mais altas no gráfico."
-      }
-    ],
-    "kpis": [],
-    "graficos": [
-      {
-        "acao": "gerar_grafico",
-        "tipo": "bar",
-        "x": "projeto",
-        "y": "receita_liquida",
-        "color": null,
-        "titulo": "Receita Bruta por Projeto",
-        "agregacao": "sum"
-      }
-    ],
-    "created_at": "2026-04-23T22:07:51.899004"
   }
 ]
