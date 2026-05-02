@@ -29,6 +29,43 @@ def _get_historico_path() -> Path:
     safe_username = re.sub(r"[^a-zA-Z0-9_-]", "_", str(username)).strip() or "default"
     return Path(__file__).parent / f"historico_chat_{safe_username}.json"
 
+
+def _get_insights_path() -> Path:
+    username = st.session_state.get('username', 'default')
+    safe_username = re.sub(r"[^a-zA-Z0-9_-]", "_", str(username)).strip() or "default"
+    return Path(__file__).parent / f"insights_{safe_username}.json"
+
+
+def carregar_insights() -> list[dict]:
+    path = _get_insights_path()
+    if not path.exists():
+        return []
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+
+def _salvar_insights(insights: list[dict]):
+    with open(_get_insights_path(), "w", encoding="utf-8") as f:
+        json.dump(insights, f, ensure_ascii=False, indent=2)
+
+
+def adicionar_insight(spec: dict):
+    insights = carregar_insights()
+    spec_com_data = dict(spec)
+    spec_com_data["saved_at"] = datetime.now().strftime("%d/%m/%Y %H:%M")
+    insights.append(spec_com_data)
+    _salvar_insights(insights)
+
+
+def remover_insight(idx: int):
+    insights = carregar_insights()
+    if 0 <= idx < len(insights):
+        insights.pop(idx)
+    _salvar_insights(insights)
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SYSTEM PROMPT
 # ─────────────────────────────────────────────────────────────────────────────
@@ -834,6 +871,11 @@ def render_kpi_agent(df: pd.DataFrame | None = None):
         st.markdown('<div class="kpi-section-title">Gráficos gerados pela IA</div>', unsafe_allow_html=True)
         for i, spec in enumerate(graficos):
             _render_grafico(spec, df, key=f"ai_chart_{conv['id']}_{i}")
+            _, col_btn, _ = st.columns([1, 2, 1])
+            with col_btn:
+                if st.button("＋ Adicionar a Meus Insights", key=f"insight_{conv['id']}_{i}", use_container_width=True):
+                    adicionar_insight(spec)
+                    st.toast("Gráfico adicionado a Meus Insights!", icon="✅")
         if st.button("Limpar Gráficos", key="btn_limpar_graficos"):
             conv["graficos"] = []
             _salvar_historico()

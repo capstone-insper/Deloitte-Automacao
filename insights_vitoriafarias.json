@@ -1,0 +1,12 @@
+[
+  {
+    "acao": "gerar_grafico",
+    "tipo": "bar",
+    "x": "area",
+    "y": "receita_liquida",
+    "color": null,
+    "titulo": "Receita Líquida por Área",
+    "agregacao": "sum",
+    "saved_at": "02/05/2026 13:37"
+  }
+]

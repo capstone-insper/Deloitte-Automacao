@@ -18,7 +18,7 @@ import unicodedata
 import warnings
 from pathlib import Path
 from urllib.parse import urlencode
-from kpi_agent import render_kpi_agent, _render_sidebar, _init_state
+from kpi_agent import render_kpi_agent, _render_sidebar, _init_state, carregar_insights, remover_insight, _render_grafico
 from database import verify_user, create_db, add_user
 
 import numpy as np
@@ -2005,28 +2005,81 @@ if selected_tab == "Dicionário":
 if selected_tab == "Meus Insights":
     st.markdown("""
     <style>
-    .insights-empty {
+    .insights-header {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 24px;
+    }
+    .insights-title { font-size: 20px; font-weight: 700; }
+    .insights-count { font-size: 13px; color: #888; }
+    .insight-card {
+        background: #f8f9fc; border: 1px solid #e8eaf0;
+        border-radius: 12px; padding: 16px 16px 10px 16px;
+        margin-bottom: 20px;
+    }
+    .insight-card-title {
+        font-size: 13px; font-weight: 600; color: #444;
+        margin-bottom: 4px; text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+    .insight-card-date { font-size: 11px; color: #aaa; margin-bottom: 8px; }
+    .insights-empty-wrap {
         display: flex; flex-direction: column; align-items: center;
-        justify-content: center; height: 55vh; gap: 20px;
+        justify-content: center; height: 55vh; gap: 18px;
     }
-    .insights-empty-text {
-        font-size: 18px; color: #555; font-weight: 500;
-    }
+    .insights-empty-text { font-size: 18px; color: #888; font-weight: 500; }
     </style>
-    <div class="insights-empty">
-        <div class="insights-empty-text">Ainda não há nada por aqui.</div>
-    </div>
     """, unsafe_allow_html=True)
 
-    col_l, col_c, col_r = st.columns([2, 2, 2])
-    with col_c:
-        if st.button("Construir novos insights.", use_container_width=True, key="btn_ir_assistente"):
-            st.session_state["active_dashboard_tab"] = "Assistente Deloitte"
-            try:
-                st.query_params["tab"] = "Assistente Deloitte"
-            except Exception:
-                pass
-            st.rerun()
+    insights = carregar_insights()
+
+    if not insights:
+        st.markdown("""
+        <div class="insights-empty-wrap">
+            <div class="insights-empty-text">Ainda não há nada por aqui.</div>
+        </div>
+        """, unsafe_allow_html=True)
+        _, col_c, _ = st.columns([2, 2, 2])
+        with col_c:
+            if st.button("Construir novos insights.", use_container_width=True, key="btn_ir_assistente"):
+                st.session_state["active_dashboard_tab"] = "Assistente Deloitte"
+                try:
+                    st.query_params["tab"] = "Assistente Deloitte"
+                except Exception:
+                    pass
+                st.rerun()
+    else:
+        n = len(insights)
+        header_col, btn_col = st.columns([4, 1])
+        with header_col:
+            st.markdown(f'<div class="insights-title">Meus Insights <span class="insights-count">({n} gráfico{"s" if n > 1 else ""})</span></div>', unsafe_allow_html=True)
+        with btn_col:
+            if st.button("＋ Novo insight", key="btn_novo_insight", use_container_width=True):
+                st.session_state["active_dashboard_tab"] = "Assistente Deloitte"
+                try:
+                    st.query_params["tab"] = "Assistente Deloitte"
+                except Exception:
+                    pass
+                st.rerun()
+
+        # Grid de 2 colunas
+        for row_start in range(0, len(insights), 2):
+            cols = st.columns(2, gap="large")
+            for col_idx, col in enumerate(cols):
+                idx = row_start + col_idx
+                if idx >= len(insights):
+                    break
+                spec = insights[idx]
+                with col:
+                    st.markdown(f'''
+                    <div class="insight-card">
+                        <div class="insight-card-title">{spec.get("titulo", "Gráfico")}</div>
+                        <div class="insight-card-date">Salvo em {spec.get("saved_at", "")}</div>
+                    </div>
+                    ''', unsafe_allow_html=True)
+                    _render_grafico(spec, df_op, key=f"insight_chart_{idx}")
+                    if st.button("🗑 Remover", key=f"rm_insight_{idx}", use_container_width=True):
+                        remover_insight(idx)
+                        st.rerun()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ABA 10 — ASSISTENTE DE KPIs (IA)
