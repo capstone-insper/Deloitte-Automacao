@@ -18,7 +18,9 @@ import unicodedata
 import warnings
 from pathlib import Path
 from urllib.parse import urlencode
-from kpi_agent import render_kpi_agent, _render_sidebar, _init_state, carregar_insights, remover_insight, _render_grafico
+from kpi_agent import (render_kpi_agent, _render_sidebar, _init_state,
+                        carregar_insights, remover_insight,
+                        _render_grafico, _render_tabela, _render_comparacao)
 from database import verify_user, create_db, add_user
 
 import numpy as np
@@ -2003,25 +2005,25 @@ if selected_tab == "Dicionário":
 # ══════════════════════════════════════════════════════════════════════════════
 
 if selected_tab == "Meus Insights":
+    from kpi_agent import _render_resumo as _kpi_render_resumo
+
     st.markdown("""
     <style>
-    .insights-header {
-        display: flex; align-items: center; justify-content: space-between;
-        margin-bottom: 24px;
+    .insight-card-header {
+        background: #12121f; border: 1px solid #1e2238;
+        border-radius: 10px 10px 0 0; padding: 12px 16px 8px 16px;
     }
-    .insights-title { font-size: 20px; font-weight: 700; }
-    .insights-count { font-size: 13px; color: #888; }
-    .insight-card {
-        background: #f8f9fc; border: 1px solid #e8eaf0;
-        border-radius: 12px; padding: 16px 16px 10px 16px;
-        margin-bottom: 20px;
+    .insight-tipo-badge {
+        display: inline-block; font-size: 10px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.6px;
+        padding: 2px 8px; border-radius: 20px; margin-bottom: 6px;
     }
-    .insight-card-title {
-        font-size: 13px; font-weight: 600; color: #444;
-        margin-bottom: 4px; text-transform: uppercase;
-        letter-spacing: 0.4px;
-    }
-    .insight-card-date { font-size: 11px; color: #aaa; margin-bottom: 8px; }
+    .badge-grafico   { background: #86BC2520; color: #86BC25; border: 1px solid #86BC2540; }
+    .badge-tabela    { background: #1555c020; color: #7ba4e8; border: 1px solid #1555c040; }
+    .badge-comparacao{ background: #c0810020; color: #e8a840; border: 1px solid #c0810040; }
+    .badge-resumo    { background: #80208020; color: #d080d0; border: 1px solid #80208040; }
+    .insight-card-title { font-size: 14px; font-weight: 600; color: #c8d0e0; }
+    .insight-card-date  { font-size: 11px; color: #3a3f50; margin-top: 2px; }
     .insights-empty-wrap {
         display: flex; flex-direction: column; align-items: center;
         justify-content: center; height: 55vh; gap: 18px;
@@ -2031,6 +2033,13 @@ if selected_tab == "Meus Insights":
     """, unsafe_allow_html=True)
 
     insights = carregar_insights()
+
+    _TIPO_LABEL = {
+        "grafico":    ("Gráfico",    "badge-grafico"),
+        "tabela":     ("Tabela",     "badge-tabela"),
+        "comparacao": ("Comparativo","badge-comparacao"),
+        "resumo":     ("Resumo",     "badge-resumo"),
+    }
 
     if not insights:
         st.markdown("""
@@ -2051,7 +2060,7 @@ if selected_tab == "Meus Insights":
         n = len(insights)
         header_col, btn_col = st.columns([4, 1])
         with header_col:
-            st.markdown(f'<div class="insights-title">Meus Insights <span class="insights-count">({n} gráfico{"s" if n > 1 else ""})</span></div>', unsafe_allow_html=True)
+            st.markdown(f"### Meus Insights &nbsp;<span style='font-size:14px;color:#555;font-weight:400'>({n} item{'s' if n>1 else ''})</span>", unsafe_allow_html=True)
         with btn_col:
             if st.button("＋ Novo insight", key="btn_novo_insight", use_container_width=True):
                 st.session_state["active_dashboard_tab"] = "Assistente Deloitte"
@@ -2061,22 +2070,49 @@ if selected_tab == "Meus Insights":
                     pass
                 st.rerun()
 
-        # Grid de 2 colunas
-        for row_start in range(0, len(insights), 2):
+        # Resumos ocupam largura total; gráficos/tabelas/comparativos em grid 2 colunas
+        resumos_idx   = [i for i, s in enumerate(insights) if s.get("tipo") == "resumo"]
+        restantes_idx = [i for i, s in enumerate(insights) if s.get("tipo") != "resumo"]
+
+        for idx in resumos_idx:
+            spec = insights[idx]
+            tipo_label, tipo_badge = _TIPO_LABEL.get("resumo", ("Resumo", "badge-resumo"))
+            st.markdown(f"""
+            <div class="insight-card-header">
+                <span class="insight-tipo-badge {tipo_badge}">{tipo_label}</span>
+                <div class="insight-card-title">{spec.get("titulo","Resumo")}</div>
+                <div class="insight-card-date">Salvo em {spec.get("saved_at","")}</div>
+            </div>""", unsafe_allow_html=True)
+            _kpi_render_resumo(spec.get("titulo",""), spec.get("conteudo",""))
+            if st.button("🗑 Remover", key=f"rm_insight_{idx}"):
+                remover_insight(idx)
+                st.rerun()
+            st.markdown("---")
+
+        for row_start in range(0, len(restantes_idx), 2):
             cols = st.columns(2, gap="large")
             for col_idx, col in enumerate(cols):
-                idx = row_start + col_idx
-                if idx >= len(insights):
+                if row_start + col_idx >= len(restantes_idx):
                     break
+                idx  = restantes_idx[row_start + col_idx]
                 spec = insights[idx]
+                tipo = spec.get("tipo", "grafico")
+                tipo_label, tipo_badge = _TIPO_LABEL.get(tipo, ("Item", "badge-grafico"))
                 with col:
-                    st.markdown(f'''
-                    <div class="insight-card">
-                        <div class="insight-card-title">{spec.get("titulo", "Gráfico")}</div>
-                        <div class="insight-card-date">Salvo em {spec.get("saved_at", "")}</div>
-                    </div>
-                    ''', unsafe_allow_html=True)
-                    _render_grafico(spec, df_op, key=f"insight_chart_{idx}")
+                    st.markdown(f"""
+                    <div class="insight-card-header">
+                        <span class="insight-tipo-badge {tipo_badge}">{tipo_label}</span>
+                        <div class="insight-card-title">{spec.get("titulo","")}</div>
+                        <div class="insight-card-date">Salvo em {spec.get("saved_at","")}</div>
+                    </div>""", unsafe_allow_html=True)
+
+                    if tipo == "grafico":
+                        _render_grafico(spec, df_op, key=f"ins_chart_{idx}")
+                    elif tipo == "tabela":
+                        _render_tabela(spec, df_op, key=f"ins_tab_{idx}")
+                    elif tipo == "comparacao":
+                        _render_comparacao(spec, df_op, key=f"ins_comp_{idx}")
+
                     if st.button("🗑 Remover", key=f"rm_insight_{idx}", use_container_width=True):
                         remover_insight(idx)
                         st.rerun()

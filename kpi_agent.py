@@ -128,18 +128,34 @@ e conhece profundamente os dados e regras de negócio deste projeto específico.
 - Responda sempre em português brasileiro
 - Os dados reais do dashboard estão no contexto — USE-OS para responder
 - Mostre o cálculo passo a passo quando solicitado
+
 - Quando o usuário pedir para "adicionar um KPI" ou "incluir uma métrica",
-  retorne obrigatoriamente um bloco JSON no seguinte formato:
+  retorne obrigatoriamente um bloco JSON:
   {"acao": "adicionar_kpi", "nome": "...", "formula": "...", "valor": "...", "contexto": "..."}
+
 - Quando o usuário pedir para "gerar um gráfico", "plotar", "mostrar gráfico", "visualizar" ou similar,
-  retorne obrigatoriamente um bloco JSON no seguinte formato:
+  retorne obrigatoriamente um bloco JSON:
   {"acao": "gerar_grafico", "tipo": "bar", "x": "coluna_x", "y": "coluna_y", "color": null, "titulo": "...", "agregacao": "sum"}
-  Tipos válidos: bar (barras), line (linha), pie (pizza), scatter (dispersão).
-  Agregações válidas: sum (soma), mean (média), count (contagem).
-  Use apenas colunas listadas em COLUNAS DISPONÍVEIS no contexto.
-  O campo "color" aceita uma coluna categórica ou null.
+  Tipos válidos: bar, line, pie, scatter. Agregações: sum, mean, count.
+  Use apenas colunas listadas em COLUNAS DISPONÍVEIS. O campo "color" aceita coluna categórica ou null.
+
+- Quando o usuário pedir "tabela", "listar", "mostrar dados", "exportar" ou similar,
+  retorne obrigatoriamente um bloco JSON:
+  {"acao": "gerar_tabela", "group_by": "coluna_agrupamento", "metricas": ["col_num_1", "col_num_2"], "titulo": "...", "agregacao": "sum", "filtro_coluna": null, "filtro_valor": null}
+  Use apenas colunas de COLUNAS DISPONÍVEIS. "group_by" deve ser coluna categórica. "metricas" devem ser numéricas.
+
+- Quando o usuário pedir "comparar X com Y", "X vs Y", "diferença entre X e Y" (áreas, projetos, meses):
+  retorne obrigatoriamente um bloco JSON:
+  {"acao": "comparar_periodos", "coluna_grupo": "coluna_para_filtrar", "valor_a": "primeiro", "valor_b": "segundo", "metricas": ["receita_liquida", "receita_prevista", "desvio_abs"], "titulo": "Comparação: primeiro vs segundo"}
+  "coluna_grupo" pode ser: area, projeto, sigla_sub_area, mes_ref, funcionario, etc.
+
+- Quando o usuário pedir "resumo executivo", "relatório geral", "análise completa", "visão geral":
+  retorne um bloco JSON seguido imediatamente do texto do resumo:
+  {"acao": "resumo_executivo", "titulo": "Resumo Executivo — [período ou contexto]"}
+  Em seguida escreva o resumo completo e estruturado (use **negrito** para destaques, listas com "- ").
+
 - Para perguntas conceituais, seja direto e didático, com exemplos numéricos
-- Máximo 250 palavras por resposta, salvo quando o usuário pedir detalhes
+- Máximo 300 palavras por resposta, salvo quando o usuário pedir resumo executivo (até 500)
 """
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -384,12 +400,15 @@ def _salvar_historico():
     dados = []
     for c in st.session_state.conversations:
         dados.append({
-            "id":         c["id"],
-            "title":      c["title"],
-            "messages":   c["messages"],
-            "kpis":       c["kpis"],
-            "graficos":   c.get("graficos", []),
-            "created_at": c["created_at"].isoformat(),
+            "id":          c["id"],
+            "title":       c["title"],
+            "messages":    c["messages"],
+            "kpis":        c["kpis"],
+            "graficos":    c.get("graficos", []),
+            "tabelas":     c.get("tabelas", []),
+            "comparacoes": c.get("comparacoes", []),
+            "resumos":     c.get("resumos", []),
+            "created_at":  c["created_at"].isoformat(),
         })
     with open(_get_historico_path(), "w", encoding="utf-8") as f:
         json.dump(dados, f, ensure_ascii=False, indent=2)
@@ -405,12 +424,15 @@ def _carregar_historico() -> list[dict]:
         result = []
         for c in dados:
             result.append({
-                "id":         c["id"],
-                "title":      c.get("title", "Conversa"),
-                "messages":   c.get("messages", []),
-                "kpis":       c.get("kpis", []),
-                "graficos":   c.get("graficos", []),
-                "created_at": datetime.fromisoformat(c["created_at"]),
+                "id":          c["id"],
+                "title":       c.get("title", "Conversa"),
+                "messages":    c.get("messages", []),
+                "kpis":        c.get("kpis", []),
+                "graficos":    c.get("graficos", []),
+                "tabelas":     c.get("tabelas", []),
+                "comparacoes": c.get("comparacoes", []),
+                "resumos":     c.get("resumos", []),
+                "created_at":  datetime.fromisoformat(c["created_at"]),
             })
         return result
     except Exception:
@@ -545,6 +567,143 @@ def _tentar_parse_grafico(texto: str) -> dict | None:
     if candidato is None or candidato.get("acao") != "gerar_grafico":
         return None
     return candidato
+
+
+def _tentar_parse_tabela(texto: str) -> dict | None:
+    candidato = _extrair_json(texto)
+    if candidato is None or candidato.get("acao") != "gerar_tabela":
+        return None
+    return candidato
+
+
+def _tentar_parse_comparacao(texto: str) -> dict | None:
+    candidato = _extrair_json(texto)
+    if candidato is None or candidato.get("acao") != "comparar_periodos":
+        return None
+    return candidato
+
+
+def _tentar_parse_resumo(texto: str) -> dict | None:
+    candidato = _extrair_json(texto)
+    if candidato is None or candidato.get("acao") != "resumo_executivo":
+        return None
+    return candidato
+
+
+def _strip_json_block(texto: str) -> str:
+    texto = re.sub(r"```(?:json)?\s*\{.*?\}\s*```", "", texto, flags=re.DOTALL)
+    texto = re.sub(r"\{[^{}]*\"acao\"[^{}]*\}", "", texto, flags=re.DOTALL)
+    return texto.strip()
+
+
+def _render_tabela(spec: dict, df: pd.DataFrame | None, key: str):
+    if df is None or df.empty:
+        st.warning("Sem dados para renderizar a tabela.")
+        return
+    group_by     = spec.get("group_by")
+    metricas     = spec.get("metricas", [])
+    titulo       = spec.get("titulo", "Tabela")
+    agg          = spec.get("agregacao", "sum")
+    filtro_col   = spec.get("filtro_coluna")
+    filtro_val   = spec.get("filtro_valor")
+
+    df_work = df.copy()
+    if filtro_col and filtro_val and filtro_col in df_work.columns:
+        df_work = df_work[df_work[filtro_col].astype(str) == str(filtro_val)]
+
+    valid_met = [m for m in metricas if m in df_work.columns]
+    try:
+        if group_by and group_by in df_work.columns and valid_met:
+            df_table = df_work.groupby(group_by)[valid_met].agg(agg).reset_index()
+        elif valid_met:
+            df_table = df_work[valid_met].head(50)
+        else:
+            st.warning("Colunas especificadas não encontradas nos dados.")
+            return
+    except Exception as e:
+        st.warning(f"Erro ao gerar tabela: {e}")
+        return
+
+    st.markdown(f"**{titulo}**")
+    st.dataframe(df_table, use_container_width=True, key=key)
+    csv = df_table.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        "⬇ Baixar CSV",
+        data=csv,
+        file_name=f"{re.sub(r'[^a-z0-9]', '_', titulo.lower())}.csv",
+        mime="text/csv",
+        key=f"dl_{key}",
+    )
+
+
+def _render_comparacao(spec: dict, df: pd.DataFrame | None, key: str):
+    if df is None or df.empty:
+        st.warning("Sem dados para comparação.")
+        return
+    col_grupo = spec.get("coluna_grupo")
+    valor_a   = spec.get("valor_a")
+    valor_b   = spec.get("valor_b")
+    metricas  = spec.get("metricas", ["receita_liquida", "receita_prevista", "desvio_abs"])
+    titulo    = spec.get("titulo", f"Comparação: {valor_a} vs {valor_b}")
+
+    if not col_grupo or col_grupo not in df.columns:
+        st.warning(f"Coluna '{col_grupo}' não encontrada.")
+        return
+
+    valid_met = [m for m in metricas if m in df.columns]
+    df_a = df[df[col_grupo].astype(str) == str(valor_a)][valid_met].sum()
+    df_b = df[df[col_grupo].astype(str) == str(valor_b)][valid_met].sum()
+
+    rows = []
+    for m in valid_met:
+        va, vb = df_a.get(m, 0), df_b.get(m, 0)
+        var = ((vb - va) / abs(va) * 100) if va != 0 else 0
+        rows.append({"Métrica": m, str(valor_a): round(va, 2),
+                     str(valor_b): round(vb, 2), "Variação (%)": round(var, 1)})
+
+    df_comp = pd.DataFrame(rows)
+    st.markdown(f"**{titulo}**")
+    st.dataframe(df_comp, use_container_width=True, key=key)
+
+
+def _render_resumo(titulo: str, conteudo: str):
+    st.markdown(f"""
+    <div style="background:#1a1a2e;border:1px solid #1e1e35;border-left:4px solid #86BC25;
+    border-radius:8px;padding:18px 20px;margin:8px 0;">
+        <div style="font-size:12px;color:#86BC25;font-weight:700;text-transform:uppercase;
+        letter-spacing:0.6px;margin-bottom:10px">{titulo}</div>
+        <div style="font-size:14px;color:#c8d4e8;line-height:1.75">{_md_to_html(conteudo)}</div>
+    </div>""", unsafe_allow_html=True)
+
+
+def _alerta_inicial(df: pd.DataFrame | None) -> str:
+    """Mensagem automática de boas-vindas com alertas baseados nos dados reais."""
+    if df is None or df.empty:
+        return ("Olá! Estou pronto para ajudar com análises financeiras. Posso gerar **gráficos**, "
+                "**tabelas exportáveis**, **comparativos entre períodos** e **resumos executivos**. "
+                "O que deseja ver?")
+    linhas = ["Olá! Analisei os dados e preparei um panorama rápido:\n"]
+    if "atingimento_pct" in df.columns:
+        med = df["atingimento_pct"].mean()
+        emoji = "🟢" if med >= 100 else ("🟡" if med >= 80 else "🔴")
+        linhas.append(f"{emoji} **Atingimento médio geral:** {med:.1f}%")
+    if "receita_liquida" in df.columns and "receita_prevista" in df.columns:
+        rl = df["receita_liquida"].sum()
+        rp = df["receita_prevista"].sum()
+        dev = rl - rp
+        sinal = "▲" if dev >= 0 else "▼"
+        linhas.append(f"{sinal} **Desvio total:** R${dev:,.0f} ({dev/rp*100:.1f}% vs previsto)")
+    if "area" in df.columns and "desvio_abs" in df.columns:
+        por_area = df.groupby("area")["desvio_abs"].sum().sort_values()
+        if por_area.iloc[0] < 0:
+            linhas.append(f"⚠️ **Maior desvio negativo:** Área {por_area.index[0]} "
+                          f"(R${por_area.iloc[0]:,.0f})")
+    if "projeto" in df.columns and "receita_liquida" in df.columns:
+        top = df.groupby("projeto")["receita_liquida"].sum()
+        linhas.append(f"🏆 **Projeto destaque:** {top.idxmax()} "
+                      f"(R${top.max():,.0f} em receita líquida)")
+    linhas.append("\nPosso gerar **gráficos**, **tabelas**, **comparativos** ou um **resumo executivo** completo. O que deseja?")
+    return "\n".join(linhas)
 
 
 def _valor_metric_seguro(valor):
@@ -696,7 +855,12 @@ def _init_state():
 
 def _nova_conversa() -> str:
     conv_id = f"conv_{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
-    conv = {"id": conv_id, "title": "Nova conversa", "messages": [], "kpis": [], "graficos": [], "created_at": datetime.now()}
+    conv = {
+        "id": conv_id, "title": "Nova conversa",
+        "messages": [], "kpis": [], "graficos": [],
+        "tabelas": [], "comparacoes": [], "resumos": [],
+        "created_at": datetime.now(),
+    }
     st.session_state.conversations.insert(0, conv)
     st.session_state.active_conv_id = conv_id
     _salvar_historico()
@@ -833,7 +997,14 @@ def render_kpi_agent(df: pd.DataFrame | None = None):
             st.rerun()
         st.divider()
 
-    # Estado vazio
+    # Alerta inicial automático na primeira vez que a conversa é aberta
+    if not conv["messages"] and df is not None and not df.empty:
+        alerta = _alerta_inicial(df)
+        now_str = datetime.now().strftime("%H:%M")
+        conv["messages"].append({"role": "assistant", "content": alerta, "time": now_str})
+        _salvar_historico()
+
+    # Estado vazio com sugestões
     if not conv["messages"]:
         st.markdown("""
         <div class="empty-state">
@@ -841,7 +1012,6 @@ def render_kpi_agent(df: pd.DataFrame | None = None):
             <div class="title">Como posso ajudar?</div>
             <div class="sub">Pergunte sobre KPIs, solicite cálculos ou peça novas métricas.</div>
         </div>""", unsafe_allow_html=True)
-
         sugestoes = [
             "Qual o desvio percentual de SL01?",
             "Gere um gráfico de receita líquida por área",
@@ -865,24 +1035,74 @@ def render_kpi_agent(df: pd.DataFrame | None = None):
             _render_bubble(msg["role"], msg["content"], msg.get("time", ""))
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # Gráficos gerados pela IA
+    cid = conv["id"]
+
+    # Gráficos
     graficos = conv.get("graficos", [])
     if graficos:
-        st.markdown('<div class="kpi-section-title">Gráficos gerados pela IA</div>', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-section-title">Gráficos</div>', unsafe_allow_html=True)
         for i, spec in enumerate(graficos):
-            _render_grafico(spec, df, key=f"ai_chart_{conv['id']}_{i}")
+            _render_grafico(spec, df, key=f"ai_chart_{cid}_{i}")
             _, col_btn, _ = st.columns([1, 2, 1])
             with col_btn:
-                if st.button("＋ Adicionar a Meus Insights", key=f"insight_{conv['id']}_{i}", use_container_width=True):
-                    adicionar_insight(spec)
+                if st.button("＋ Adicionar a Meus Insights", key=f"ins_g_{cid}_{i}", use_container_width=True):
+                    adicionar_insight({**spec, "tipo": "grafico"})
                     st.toast("Gráfico adicionado a Meus Insights!", icon="✅")
         if st.button("Limpar Gráficos", key="btn_limpar_graficos"):
             conv["graficos"] = []
             _salvar_historico()
             st.rerun()
 
+    # Tabelas
+    tabelas = conv.get("tabelas", [])
+    if tabelas:
+        st.markdown('<div class="kpi-section-title">Tabelas</div>', unsafe_allow_html=True)
+        for i, spec in enumerate(tabelas):
+            _render_tabela(spec, df, key=f"ai_tab_{cid}_{i}")
+            _, col_btn, _ = st.columns([1, 2, 1])
+            with col_btn:
+                if st.button("＋ Adicionar a Meus Insights", key=f"ins_t_{cid}_{i}", use_container_width=True):
+                    adicionar_insight({**spec, "tipo": "tabela"})
+                    st.toast("Tabela adicionada a Meus Insights!", icon="✅")
+        if st.button("Limpar Tabelas", key="btn_limpar_tabelas"):
+            conv["tabelas"] = []
+            _salvar_historico()
+            st.rerun()
+
+    # Comparativos
+    comparacoes = conv.get("comparacoes", [])
+    if comparacoes:
+        st.markdown('<div class="kpi-section-title">Comparativos</div>', unsafe_allow_html=True)
+        for i, spec in enumerate(comparacoes):
+            _render_comparacao(spec, df, key=f"ai_comp_{cid}_{i}")
+            _, col_btn, _ = st.columns([1, 2, 1])
+            with col_btn:
+                if st.button("＋ Adicionar a Meus Insights", key=f"ins_c_{cid}_{i}", use_container_width=True):
+                    adicionar_insight({**spec, "tipo": "comparacao"})
+                    st.toast("Comparativo adicionado a Meus Insights!", icon="✅")
+        if st.button("Limpar Comparativos", key="btn_limpar_comp"):
+            conv["comparacoes"] = []
+            _salvar_historico()
+            st.rerun()
+
+    # Resumos executivos
+    resumos = conv.get("resumos", [])
+    if resumos:
+        st.markdown('<div class="kpi-section-title">Resumos Executivos</div>', unsafe_allow_html=True)
+        for i, res in enumerate(resumos):
+            _render_resumo(res.get("titulo", "Resumo"), res.get("conteudo", ""))
+            _, col_btn, _ = st.columns([1, 2, 1])
+            with col_btn:
+                if st.button("＋ Adicionar a Meus Insights", key=f"ins_r_{cid}_{i}", use_container_width=True):
+                    adicionar_insight({**res, "tipo": "resumo"})
+                    st.toast("Resumo adicionado a Meus Insights!", icon="✅")
+        if st.button("Limpar Resumos", key="btn_limpar_resumos"):
+            conv["resumos"] = []
+            _salvar_historico()
+            st.rerun()
+
     # Input
-    prompt = st.chat_input("Mensagem para o Assistente de KPIs...")
+    prompt = st.chat_input("Pergunte, peça uma tabela, gráfico, comparativo ou resumo executivo...")
     if prompt:
         _processar_mensagem(prompt, conv, df)
         st.rerun()
@@ -897,16 +1117,43 @@ def _processar_mensagem(prompt: str, conv: dict, df: pd.DataFrame | None):
     with st.spinner("Analisando..."):
         resposta = _chamar_api(conv["messages"], _resumo_df(df))
 
+    acao_detectada = False
+
     kpi_json = _tentar_parse_kpi(resposta)
     if kpi_json:
         conv["kpis"].append(kpi_json)
+        resposta = _strip_json_block(resposta) or "KPI adicionado acima."
+        acao_detectada = True
 
-    grafico_json = _tentar_parse_grafico(resposta)
+    grafico_json = _tentar_parse_grafico(resposta if not acao_detectada else "")
+    if not acao_detectada:
+        grafico_json = _tentar_parse_grafico(resposta)
     if grafico_json:
         conv.setdefault("graficos", []).append(grafico_json)
-        resposta = re.sub(r"```(?:json)?\s*\{.*?\}\s*```", "", resposta, flags=re.DOTALL)
-        resposta = re.sub(r"\{[^{}]*\"acao\"\s*:\s*\"gerar_grafico\"[^{}]*\}", "", resposta, flags=re.DOTALL)
-        resposta = resposta.strip() or "Gráfico gerado abaixo."
+        resposta = _strip_json_block(resposta) or "Gráfico gerado abaixo."
+        acao_detectada = True
+
+    if not acao_detectada:
+        tabela_json = _tentar_parse_tabela(resposta)
+        if tabela_json:
+            conv.setdefault("tabelas", []).append(tabela_json)
+            resposta = _strip_json_block(resposta) or "Tabela gerada abaixo."
+            acao_detectada = True
+
+    if not acao_detectada:
+        comp_json = _tentar_parse_comparacao(resposta)
+        if comp_json:
+            conv.setdefault("comparacoes", []).append(comp_json)
+            resposta = _strip_json_block(resposta) or "Comparativo gerado abaixo."
+            acao_detectada = True
+
+    if not acao_detectada:
+        resumo_json = _tentar_parse_resumo(resposta)
+        if resumo_json:
+            titulo_res = resumo_json.get("titulo", "Resumo Executivo")
+            conteudo   = _strip_json_block(resposta)
+            conv.setdefault("resumos", []).append({"titulo": titulo_res, "conteudo": conteudo})
+            resposta = f"📋 **{titulo_res}** gerado abaixo."
 
     resp_time = datetime.now().strftime("%H:%M")
     conv["messages"].append({"role": "assistant", "content": resposta, "time": resp_time})
