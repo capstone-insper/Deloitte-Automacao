@@ -693,9 +693,9 @@ def _render_sidebar():
         # Botão Nova conversa (primary para CSS diferenciar)
         if st.button("＋  Nova conversa", key="btn_nova", use_container_width=True, type="primary"):
             _nova_conversa()
-            st.session_state["active_dashboard_tab"] = "✦ Assistente de KPIs"
+            st.session_state["active_dashboard_tab"] = "Assistente Deloitte"
             try:
-                st.query_params["tab"] = "✦ Assistente de KPIs"
+                st.query_params["tab"] = "Assistente Deloitte"
             except Exception:
                 pass
             st.session_state._jump_to_assistant = True
@@ -731,9 +731,9 @@ def _render_sidebar():
                 with col_btn:
                     if st.button(f"💬  {title[:30]}", key=f"sel_{c['id']}", use_container_width=True):
                         st.session_state.active_conv_id = c["id"]
-                        st.session_state["active_dashboard_tab"] = "✦ Assistente de KPIs"
+                        st.session_state["active_dashboard_tab"] = "Assistente Deloitte"
                         try:
-                            st.query_params["tab"] = "✦ Assistente de KPIs"
+                            st.query_params["tab"] = "Assistente Deloitte"
                         except Exception:
                             pass
                         st.session_state._jump_to_assistant = True

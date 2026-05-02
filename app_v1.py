@@ -900,9 +900,9 @@ _render_sidebar()
 # porque isso escondia o dashboard quando uma nova conversa era criada.
 if st.session_state.get("_jump_to_assistant", False):
     st.session_state._jump_to_assistant = False
-    st.session_state["active_dashboard_tab"] = "✦ Assistente de KPIs"
+    st.session_state["active_dashboard_tab"] = "Assistente Deloitte"
     try:
-        st.query_params["tab"] = "✦ Assistente de KPIs"
+        st.query_params["tab"] = "Assistente Deloitte"
     except Exception:
         pass
 
@@ -923,7 +923,8 @@ TAB_LABELS = [
     "Desvios & Alertas",
     "Dados",
     "Dicionário",
-    "✦ Assistente de KPIs",
+    "Meus Insights",
+    "Assistente Deloitte",
 ]
 
 query_tab = st.query_params.get("tab", "")
@@ -959,7 +960,7 @@ def _select_tab(label: str) -> None:
 
 # Botões em colunas: não usam href, então não abrem nova guia.
 # O CSS acima deixa esses botões com aparência próxima às abas originais.
-tab_cols = st.columns([1.0, 1.35, 1.25, 0.85, 0.95, 1.35, 0.75, 0.95, 1.65], gap="small")
+tab_cols = st.columns([1.0, 1.35, 1.25, 0.85, 0.95, 1.35, 0.75, 0.95, 1.25, 1.6], gap="small")
 for col, label in zip(tab_cols, TAB_LABELS):
     with col:
         if st.button(
@@ -1998,8 +1999,38 @@ if selected_tab == "Dicionário":
     tbl(dic_calc)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ABA 9 — ASSISTENTE DE KPIs (IA)
+# ABA 9 — MEUS INSIGHTS
 # ══════════════════════════════════════════════════════════════════════════════
 
-if selected_tab == "✦ Assistente de KPIs":
+if selected_tab == "Meus Insights":
+    st.markdown("""
+    <style>
+    .insights-empty {
+        display: flex; flex-direction: column; align-items: center;
+        justify-content: center; height: 55vh; gap: 20px;
+    }
+    .insights-empty-text {
+        font-size: 18px; color: #555; font-weight: 500;
+    }
+    </style>
+    <div class="insights-empty">
+        <div class="insights-empty-text">Ainda não há nada por aqui.</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col_l, col_c, col_r = st.columns([2, 2, 2])
+    with col_c:
+        if st.button("Construir novos insights.", use_container_width=True, key="btn_ir_assistente"):
+            st.session_state["active_dashboard_tab"] = "Assistente Deloitte"
+            try:
+                st.query_params["tab"] = "Assistente Deloitte"
+            except Exception:
+                pass
+            st.rerun()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ABA 10 — ASSISTENTE DE KPIs (IA)
+# ══════════════════════════════════════════════════════════════════════════════
+
+if selected_tab == "Assistente Deloitte":
     render_kpi_agent(df=df_op)
