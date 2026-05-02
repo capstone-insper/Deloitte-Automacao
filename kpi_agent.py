@@ -111,46 +111,225 @@ e conhece profundamente os dados e regras de negócio deste projeto específico.
 
 _CHAT_CSS = """
 <style>
-[data-testid="stSidebar"] { background: #0d0d1a !important; border-right: 1px solid #1e1e35 !important; }
+/* ══ SIDEBAR ══ */
+[data-testid="stSidebar"] {
+    background: #0d0d1a !important;
+    border-right: 1px solid #1a1a2e !important;
+}
+[data-testid="stSidebar"] .block-container {
+    padding: 18px 10px 18px 10px !important;
+}
+[data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 0 !important; }
 
-.sidebar-header { font-size: 11px; font-weight: 600; color: #86BC25; text-transform: uppercase;
-    letter-spacing: 1px; padding: 4px 0 10px 0; border-bottom: 1px solid #1e1e35; margin-bottom: 12px; }
+/* Logo */
+.sidebar-logo {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 2px 16px 2px; margin-bottom: 12px;
+    border-bottom: 1px solid #1a1a2e;
+}
+.sidebar-logo-icon {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, #86BC25 0%, #5a8a10 100%);
+    border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 18px; color: #fff; font-weight: 800;
+    flex-shrink: 0;
+}
+.sidebar-logo-name {
+    font-size: 17px; font-weight: 700; color: #c8d0e0; line-height: 1.1;
+}
+.sidebar-logo-name span { color: #86BC25; }
 
-.history-section-label { font-size: 10px; color: #555; text-transform: uppercase;
-    letter-spacing: 0.8px; margin: 14px 0 4px 0; }
+/* Nova conversa - primary */
+[data-testid="stSidebar"] [data-testid="baseButton-primary"] {
+    background: linear-gradient(135deg, #1555c0 0%, #012169 100%) !important;
+    color: #fff !important; border: none !important;
+    border-radius: 10px !important; font-size: 13px !important;
+    font-weight: 600 !important; letter-spacing: 0.3px !important;
+    padding: 9px 14px !important;
+    box-shadow: 0 2px 10px rgba(1,33,105,0.45) !important;
+    transition: all 0.18s ease !important;
+}
+[data-testid="stSidebar"] [data-testid="baseButton-primary"]:hover {
+    background: linear-gradient(135deg, #1e6ae8 0%, #0a2a80 100%) !important;
+    box-shadow: 0 4px 16px rgba(1,33,105,0.6) !important;
+    transform: translateY(-1px) !important;
+}
 
-.history-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px;
-    border-radius: 8px; margin-bottom: 2px; }
-.history-item.active { background: #1a1a2e; border-left: 2px solid #86BC25; }
+/* Section label */
+.history-section-label {
+    font-size: 10px; color: #3a3f50; text-transform: uppercase;
+    letter-spacing: 0.9px; margin: 14px 0 2px 4px;
+}
 
-.history-title { font-size: 13px; color: #c0c0d0; white-space: nowrap;
-    overflow: hidden; text-overflow: ellipsis; flex: 1; }
-.history-time  { font-size: 10px; color: #555; flex-shrink: 0; }
+/* Conversation item buttons */
+[data-testid="stSidebar"] [data-testid="baseButton-secondary"] {
+    background: transparent !important; border: none !important;
+    color: #6a7488 !important; text-align: left !important;
+    padding: 9px 10px !important; border-radius: 8px !important;
+    font-size: 13px !important; font-weight: 400 !important;
+    transition: background 0.15s, color 0.15s !important;
+    white-space: nowrap !important; overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+[data-testid="stSidebar"] [data-testid="baseButton-secondary"]:hover {
+    background: rgba(255,255,255,0.05) !important;
+    color: #b0bcd0 !important;
+}
 
-.chat-wrapper { display: flex; flex-direction: column; gap: 20px; padding: 8px 0 32px 0; }
+/* Active conversation — targets button immediately after .active-conv-indicator */
+*:has(> .active-conv-indicator) ~ * [data-testid="stColumn"]:first-child [data-testid="baseButton-secondary"],
+*:has(.active-conv-indicator) + * [data-testid="stColumn"]:first-child [data-testid="baseButton-secondary"] {
+    background: rgba(134,188,37,0.1) !important;
+    color: #c8d8e8 !important;
+    border-left: 3px solid #86BC25 !important;
+    border-radius: 0 8px 8px 0 !important;
+    padding-left: 12px !important;
+    font-weight: 500 !important;
+}
 
-.chat-row { display: flex; align-items: flex-end; gap: 10px; }
-.chat-row.user { flex-direction: row-reverse; }
+/* Delete button — sempre centralizado independente do tamanho da sidebar */
+[data-testid="stSidebar"] [data-testid="stColumn"]:last-child,
+[data-testid="stSidebar"] [data-testid="stColumn"]:last-child > *,
+[data-testid="stSidebar"] [data-testid="stColumn"]:last-child .stButton {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+}
+[data-testid="stSidebar"] [data-testid="stColumn"]:last-child [data-testid="baseButton-secondary"] {
+    color: #3a4050 !important;
+    padding: 0 !important;
+    font-size: 13px !important;
+    line-height: 1 !important;
+    width: 26px !important;
+    max-width: 26px !important;
+    min-width: 26px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    border-radius: 6px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid #252838 !important;
+}
+[data-testid="stSidebar"] [data-testid="stColumn"]:last-child [data-testid="baseButton-secondary"]:hover {
+    color: #e05050 !important;
+    background: rgba(200,40,40,0.15) !important;
+    border-color: rgba(200,40,40,0.3) !important;
+}
 
-.avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center;
-    justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
-.avatar.ai   { background: #86BC25; color: #fff; }
-.avatar.user { background: #012169; color: #fff; }
+/* Conv item date */
+.conv-date-row {
+    font-size: 10px; color: #383e4e;
+    margin: -4px 0 6px 10px; padding: 0;
+    line-height: 1;
+}
 
-.bubble { max-width: 70%; padding: 11px 15px; border-radius: 18px;
-    font-size: 14px; line-height: 1.7; word-break: break-word; }
-.bubble.ai   { background: #1a1a2e; color: #dde0ee; border-bottom-left-radius: 4px; }
-.bubble.user { background: #012169; color: #fff; border-bottom-right-radius: 4px; }
-.bubble ul { margin: 6px 0 6px 18px; padding: 0; }
-.bubble li { margin-bottom: 2px; }
+/* ══ MAIN AREA ══ */
 
-.kpi-section-title { font-size: 12px; color: #86BC25; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 0.5px; margin: 16px 0 8px 0; border-bottom: 1px solid #86BC2530; padding-bottom: 4px; }
+/* Conversation title */
+.conv-title {
+    font-size: 17px; font-weight: 600; color: #c8d0e0;
+    padding-bottom: 12px; border-bottom: 1px solid #1a1a2e;
+    margin-bottom: 20px;
+}
 
-.empty-state { text-align: center; padding: 48px 24px; color: #444; }
-.empty-state .icon  { font-size: 36px; margin-bottom: 12px; }
-.empty-state .title { font-size: 16px; color: #666; margin-bottom: 6px; }
-.empty-state .sub   { font-size: 13px; }
+/* ── Messages ── */
+.chat-wrapper { display: flex; flex-direction: column; gap: 0; padding: 4px 0 32px 0; }
+
+/* Bloco base */
+.msg-block {
+    display: flex; flex-direction: row; align-items: flex-start; gap: 12px;
+    padding: 10px 6px; border-radius: 6px;
+    transition: background 0.1s;
+}
+.msg-block:hover { background: rgba(255,255,255,0.02); }
+
+/* Usuário — invertido (avatar e conteúdo à direita) */
+.msg-block.user-block { flex-direction: row-reverse; }
+
+.msg-avatar {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0; margin-top: 2px;
+}
+.msg-avatar.ai   { background: #86BC25; color: #fff; }
+.msg-avatar.user { background: #012169; color: #fff; }
+
+.msg-right { flex: 1; min-width: 0; }
+
+/* Cabeçalho: nome + hora */
+.msg-meta { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+/* Usuário: nome e hora alinhados à direita, na ordem correta (Você  12:27) */
+.msg-block.user-block .msg-meta { justify-content: flex-end; }
+
+.msg-sender { font-size: 14px; font-weight: 600; }
+.msg-sender.ai-name   { color: #86BC25; }
+.msg-sender.user-name { color: #7ba4e8; }
+.msg-ts { font-size: 11px; color: #3a3f50; }
+
+/* Texto da mensagem */
+.msg-text {
+    font-size: 14px; line-height: 1.72;
+    color: #b8c4d8; word-break: break-word;
+}
+/* Usuário: bolha à direita */
+.msg-text.user-text {
+    background: #012169;
+    color: #dde8ff;
+    padding: 10px 14px;
+    border-radius: 14px 3px 14px 14px;
+    display: inline-block;
+    max-width: 75%;
+    text-align: left;
+    float: right;
+    clear: both;
+}
+/* Clearfix após bolha do usuário */
+.msg-block.user-block .msg-right::after {
+    content: ""; display: table; clear: both;
+}
+.msg-text ul { margin: 6px 0 6px 18px; padding: 0; }
+.msg-text li { margin-bottom: 3px; }
+.msg-text strong { color: #dce8f8; font-weight: 700; }
+
+/* ── KPIs / Charts ── */
+.kpi-section-title {
+    font-size: 11px; color: #86BC25; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin: 20px 0 8px 0; border-bottom: 1px solid #86BC2525;
+    padding-bottom: 4px;
+}
+
+/* ── Empty state ── */
+.empty-state { text-align: center; padding: 60px 24px 24px 24px; }
+.empty-state .icon  { font-size: 40px; margin-bottom: 14px; }
+.empty-state .title { font-size: 17px; color: #505868; margin-bottom: 6px; font-weight: 600; }
+.empty-state .sub   { font-size: 13px; color: #3a3f50; }
+
+/* ── Suggestion cards (empty state) ── */
+.suggestion-card button {
+    border-radius: 10px !important;
+    background: #12121f !important;
+    border: 1px solid #1e2238 !important;
+    color: #7a86a0 !important;
+    font-size: 13px !important;
+    padding: 14px 12px !important;
+    text-align: left !important;
+    line-height: 1.4 !important;
+    transition: all 0.15s !important;
+    white-space: normal !important;
+    height: auto !important;
+    min-height: 56px !important;
+}
+.suggestion-card button:hover {
+    background: #181828 !important;
+    border-color: #86BC2560 !important;
+    color: #a8b4cc !important;
+}
 </style>
 """
 
@@ -415,23 +594,39 @@ def _md_to_html(text: str) -> str:
     return "\n".join(out)
 
 
-def _render_bubble(role: str, content: str):
-    is_user = role == "user"
+def _render_bubble(role: str, content: str, time_str: str = ""):
+    is_user  = role == "user"
+    side     = "user" if is_user else "ai"
+    name     = "Você" if is_user else "Assistente Deloitte"
+    letter   = "V"    if is_user else "IA"
+    name_cls = "user-name" if is_user else "ai-name"
+    text_cls = "user-text" if is_user else ""
+    blk_cls  = "user-block" if is_user else ""
+    ts_html  = f'<span class="msg-ts">{time_str}</span>' if time_str else ""
     st.markdown(
-        f"""<div class="chat-row {'user' if is_user else 'ai'}">
-            <div class="avatar {'user' if is_user else 'ai'}">{'V' if is_user else 'IA'}</div>
-            <div class="bubble {'user' if is_user else 'ai'}">{_md_to_html(content)}</div>
+        f"""<div class="msg-block {blk_cls}">
+            <div class="msg-avatar {side}">{letter}</div>
+            <div class="msg-right">
+                <div class="msg-meta">
+                    <span class="msg-sender {name_cls}">{name}</span>
+                    {ts_html}
+                </div>
+                <div class="msg-text {text_cls}">{_md_to_html(content)}</div>
+            </div>
         </div>""",
         unsafe_allow_html=True,
     )
 
 
+_DIAS_PT = ["Segunda-feira", "Terça-feira", "Quarta-feira",
+            "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
+
 def _tempo_relativo(ts: datetime) -> str:
-    diff = (datetime.now() - ts).total_seconds()
-    if diff < 60:    return "agora"
-    if diff < 3600:  return f"{int(diff//60)}min"
-    if diff < 86400: return f"{int(diff//3600)}h"
-    return ts.strftime("%d/%m")
+    diff_days = (datetime.now().date() - ts.date()).days
+    if diff_days == 0:  return "Hoje"
+    if diff_days == 1:  return "Ontem"
+    if diff_days < 7:   return _DIAS_PT[ts.weekday()]
+    return ts.strftime("%d/%m/%Y")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -480,9 +675,17 @@ def _render_sidebar():
     _init_state()
     with st.sidebar:
         st.markdown(_CHAT_CSS, unsafe_allow_html=True)
-        st.markdown('<div class="sidebar-header">✦ Assistente Deloitte</div>', unsafe_allow_html=True)
 
-        if st.button("＋  Nova conversa", key="btn_nova", use_container_width=True):
+        # Logo
+        st.markdown("""
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-icon">✦</div>
+            <div class="sidebar-logo-name">Assistente <span>Deloitte</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Botão Nova conversa (primary para CSS diferenciar)
+        if st.button("＋  Nova conversa", key="btn_nova", use_container_width=True, type="primary"):
             _nova_conversa()
             st.session_state["active_dashboard_tab"] = "✦ Assistente de KPIs"
             try:
@@ -493,16 +696,17 @@ def _render_sidebar():
             st.rerun()
 
         if not st.session_state.conversations:
-            st.markdown('<div style="font-size:12px;color:#444;margin-top:12px">Nenhuma conversa ainda.</div>', unsafe_allow_html=True)
+            st.markdown('<div style="font-size:12px;color:#2e3340;margin-top:16px;text-align:center">Nenhuma conversa ainda.</div>', unsafe_allow_html=True)
             return
 
-        hoje, semana, anteriores = [], [], []
-        now = datetime.now()
+        # Agrupamento por data
+        hoje, ontem, semana, anteriores = [], [], [], []
         for c in st.session_state.conversations:
-            diff = (now - c["created_at"]).days
-            if diff == 0:    hoje.append(c)
-            elif diff <= 7:  semana.append(c)
-            else:            anteriores.append(c)
+            diff = (datetime.now().date() - c["created_at"].date()).days
+            if diff == 0:   hoje.append(c)
+            elif diff == 1: ontem.append(c)
+            elif diff < 7:  semana.append(c)
+            else:           anteriores.append(c)
 
         def _render_group(label: str, group: list):
             if not group:
@@ -510,14 +714,16 @@ def _render_sidebar():
             st.markdown(f'<div class="history-section-label">{label}</div>', unsafe_allow_html=True)
             for c in group:
                 is_active = c["id"] == st.session_state.active_conv_id
-                tempo = _tempo_relativo(c["created_at"])
-                title = c["title"]
+                title     = c["title"]
+                tempo     = _tempo_relativo(c["created_at"])
 
-                # Linha: botão de seleção + botão de exclusão
-                col_btn, col_del = st.columns([5, 1])
+                # Marcador CSS para estado ativo (CSS :has() detecta e estiliza o botão seguinte)
+                if is_active:
+                    st.markdown('<div class="active-conv-indicator"></div>', unsafe_allow_html=True)
+
+                col_btn, col_del = st.columns([6, 1])
                 with col_btn:
-                    label_btn = f"{'▶ ' if is_active else ''}{title[:32]}"
-                    if st.button(label_btn, key=f"sel_{c['id']}", use_container_width=True):
+                    if st.button(f"💬  {title[:30]}", key=f"sel_{c['id']}", use_container_width=True):
                         st.session_state.active_conv_id = c["id"]
                         st.session_state["active_dashboard_tab"] = "✦ Assistente de KPIs"
                         try:
@@ -537,7 +743,11 @@ def _render_sidebar():
                         _salvar_historico()
                         st.rerun()
 
+                # Data abaixo do item
+                st.markdown(f'<div class="conv-date-row">{tempo}</div>', unsafe_allow_html=True)
+
         _render_group("Hoje", hoje)
+        _render_group("Ontem", ontem)
         _render_group("Esta semana", semana)
         _render_group("Anteriores", anteriores)
 
@@ -558,8 +768,8 @@ def render_kpi_agent(df: pd.DataFrame | None = None):
         _nova_conversa()
         conv = _get_active()
 
-    st.markdown('<div class="sec-header">Seu assistente Deloitte</div>', unsafe_allow_html=True)
-    st.caption("Pergunte sobre qualquer KPI, solicite cálculos ou peça para adicionar novas métricas.")
+    titulo_conv = conv.get("title", "Nova conversa") if conv else "Nova conversa"
+    st.markdown(f'<div class="conv-title">{titulo_conv}</div>', unsafe_allow_html=True)
 
     # KPIs adicionados
     if conv["kpis"]:
@@ -580,18 +790,6 @@ def render_kpi_agent(df: pd.DataFrame | None = None):
             st.rerun()
         st.divider()
 
-    # Gráficos gerados pela IA
-    graficos = conv.get("graficos", [])
-    if graficos:
-        st.markdown('<div class="kpi-section-title">Gráficos gerados pela IA</div>', unsafe_allow_html=True)
-        for i, spec in enumerate(graficos):
-            _render_grafico(spec, df, key=f"ai_chart_{conv['id']}_{i}")
-        if st.button("Limpar Gráficos", key="btn_limpar_graficos"):
-            conv["graficos"] = []
-            _salvar_historico()
-            st.rerun()
-        st.divider()
-
     # Estado vazio
     if not conv["messages"]:
         st.markdown("""
@@ -600,16 +798,14 @@ def render_kpi_agent(df: pd.DataFrame | None = None):
             <div class="title">Como posso ajudar?</div>
             <div class="sub">Pergunte sobre KPIs, solicite cálculos ou peça novas métricas.</div>
         </div>""", unsafe_allow_html=True)
-        st.markdown("**Sugestões:**")
-        perguntas = [
-            "Adicione KPI de atingimento médio por área",
+
+        sugestoes = [
             "Qual o desvio percentual de SL01?",
-            "Gere um gráfico de barras de receita líquida por área",
-            "Gere um gráfico de linha da receita líquida por mês",
+            "Gere um gráfico de receita líquida por área",
             "O que é allowance?",
         ]
-        cols = st.columns(len(perguntas))
-        for i, perg in enumerate(perguntas):
+        cols = st.columns(len(sugestoes))
+        for i, perg in enumerate(sugestoes):
             with cols[i]:
                 if st.button(perg, key=f"quick_{i}", use_container_width=True):
                     st.session_state["_kpi_quick"] = perg
@@ -623,8 +819,19 @@ def render_kpi_agent(df: pd.DataFrame | None = None):
     if conv["messages"]:
         st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
         for msg in conv["messages"]:
-            _render_bubble(msg["role"], msg["content"])
+            _render_bubble(msg["role"], msg["content"], msg.get("time", ""))
         st.markdown('</div>', unsafe_allow_html=True)
+
+    # Gráficos gerados pela IA
+    graficos = conv.get("graficos", [])
+    if graficos:
+        st.markdown('<div class="kpi-section-title">Gráficos gerados pela IA</div>', unsafe_allow_html=True)
+        for i, spec in enumerate(graficos):
+            _render_grafico(spec, df, key=f"ai_chart_{conv['id']}_{i}")
+        if st.button("Limpar Gráficos", key="btn_limpar_graficos"):
+            conv["graficos"] = []
+            _salvar_historico()
+            st.rerun()
 
     # Input
     prompt = st.chat_input("Mensagem para o Assistente de KPIs...")
@@ -634,7 +841,8 @@ def render_kpi_agent(df: pd.DataFrame | None = None):
 
 
 def _processar_mensagem(prompt: str, conv: dict, df: pd.DataFrame | None):
-    conv["messages"].append({"role": "user", "content": prompt})
+    now_str = datetime.now().strftime("%H:%M")
+    conv["messages"].append({"role": "user", "content": prompt, "time": now_str})
     if len(conv["messages"]) == 1:
         conv["title"] = prompt[:42] + ("…" if len(prompt) > 42 else "")
 
@@ -648,10 +856,10 @@ def _processar_mensagem(prompt: str, conv: dict, df: pd.DataFrame | None):
     grafico_json = _tentar_parse_grafico(resposta)
     if grafico_json:
         conv.setdefault("graficos", []).append(grafico_json)
-        # Remove o bloco JSON da mensagem exibida no chat
         resposta = re.sub(r"```(?:json)?\s*\{.*?\}\s*```", "", resposta, flags=re.DOTALL)
         resposta = re.sub(r"\{[^{}]*\"acao\"\s*:\s*\"gerar_grafico\"[^{}]*\}", "", resposta, flags=re.DOTALL)
-        resposta = resposta.strip() or "Gráfico gerado acima."
+        resposta = resposta.strip() or "Gráfico gerado abaixo."
 
-    conv["messages"].append({"role": "assistant", "content": resposta})
+    resp_time = datetime.now().strftime("%H:%M")
+    conv["messages"].append({"role": "assistant", "content": resposta, "time": resp_time})
     _salvar_historico()
