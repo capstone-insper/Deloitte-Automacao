@@ -1,8 +1,12 @@
 import sqlite3
 import hashlib
 import os
+from dotenv import load_dotenv
 
-DB_PATH = 'users.db'
+load_dotenv()
+
+DB_PATH = os.getenv("DB_PATH", "users.db")
+
 
 def create_db():
     conn = sqlite3.connect(DB_PATH)
@@ -14,6 +18,7 @@ def create_db():
                 )''')
     conn.commit()
     conn.close()
+
 
 def add_user(username, password) -> bool:
     password_hash = hashlib.sha256(password.encode()).hexdigest()
@@ -27,6 +32,7 @@ def add_user(username, password) -> bool:
     except sqlite3.IntegrityError:
         conn.close()
         return False
+
 
 def set_user_password(username, password):
     password_hash = hashlib.sha256(password.encode()).hexdigest()
@@ -42,6 +48,7 @@ def set_user_password(username, password):
     conn.commit()
     conn.close()
 
+
 def verify_user(username, password):
     password_hash = hashlib.sha256(password.encode()).hexdigest()
     conn = sqlite3.connect(DB_PATH)
@@ -53,10 +60,17 @@ def verify_user(username, password):
         return True
     return False
 
-# Criar DB e garantir usuários de exemplo
+
 if __name__ == "__main__":
     create_db()
-    set_user_password("joaoheinke", "123456")
-    set_user_password("joaorocha", "123456")
-    set_user_password("albertocarrera", "123456")
-    set_user_password("vitoriafarias", "123456") 
+    users = {
+        "joaoheinke":    os.getenv("INIT_PASSWORD_JOAOHEINKE", ""),
+        "joaorocha":     os.getenv("INIT_PASSWORD_JOAOROCHA", ""),
+        "albertocarrera":os.getenv("INIT_PASSWORD_ALBERTOCARRERA", ""),
+        "vitoriafarias": os.getenv("INIT_PASSWORD_VITORIAFARIAS", ""),
+    }
+    for username, password in users.items():
+        if password:
+            set_user_password(username, password)
+        else:
+            print(f"⚠️  Senha de '{username}' não definida no .env — usuário ignorado.")

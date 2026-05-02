@@ -51,6 +51,8 @@ st.set_page_config(
 # ─────────────────────────────────────────────────────────────────────────────
 
 AUTH_SECRET = os.getenv("AUTH_SECRET")
+if not AUTH_SECRET:
+    raise RuntimeError("AUTH_SECRET não definido no .env — a aplicação não pode iniciar sem ele.")
 
 
 def _make_login_token(username: str) -> str:
