@@ -211,8 +211,14 @@ _CHAT_CSS = """
 
 /* Section label */
 .history-section-label {
-    font-size: 10px; color: #3a3f50; text-transform: uppercase;
-    letter-spacing: 0.9px; margin: 14px 0 2px 4px;
+    font-size: 9.5px; color: #505870; text-transform: uppercase;
+    letter-spacing: 1.2px; margin: 18px 0 4px 6px;
+    font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+}
+.history-section-label::after {
+    content: ""; flex: 1; height: 1px;
+    background: linear-gradient(to right, #1e2238, transparent);
 }
 
 /* Conversation item buttons */
@@ -276,9 +282,13 @@ _CHAT_CSS = """
 
 /* Conv item date */
 .conv-date-row {
-    font-size: 10px; color: #383e4e;
-    margin: -4px 0 6px 10px; padding: 0;
-    line-height: 1;
+    font-size: 10.5px; color: #556070;
+    margin: -2px 0 16px 12px; padding: 2px 7px;
+    line-height: 1; display: inline-block;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid #1e2238;
+    border-radius: 20px;
+    letter-spacing: 0.3px;
 }
 
 /* ══ MAIN AREA ══ */
@@ -361,6 +371,24 @@ _CHAT_CSS = """
     text-transform: uppercase; letter-spacing: 0.5px;
     margin: 20px 0 8px 0; border-bottom: 1px solid #86BC2525;
     padding-bottom: 4px;
+}
+
+/* ── Date separator ── */
+.chat-date-sep {
+    display: flex; align-items: center; gap: 10px;
+    text-align: center; margin: 16px 0 14px 0;
+}
+.chat-date-sep::before, .chat-date-sep::after {
+    content: ""; flex: 1; height: 1px;
+    background: linear-gradient(to right, transparent, #1e2238, transparent);
+}
+.chat-date-sep span {
+    font-size: 10.5px; color: #505870; font-weight: 500;
+    letter-spacing: 0.5px; white-space: nowrap;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid #1e2238;
+    border-radius: 20px;
+    padding: 3px 12px;
 }
 
 /* ── Empty state ── */
@@ -823,6 +851,12 @@ def _render_bubble(role: str, content: str, time_str: str = ""):
 _DIAS_PT = ["Segunda-feira", "Terça-feira", "Quarta-feira",
             "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
 
+_MESES_PT = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
+             "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+
+def _data_por_extenso(ts: datetime) -> str:
+    return f"{ts.day:02d} de {_MESES_PT[ts.month - 1]} de {ts.year}"
+
 def _tempo_relativo(ts: datetime) -> str:
     diff_days = (datetime.now().date() - ts.date()).days
     if diff_days == 0:  return "Hoje"
@@ -918,7 +952,6 @@ def _render_sidebar():
         def _render_group(label: str, group: list):
             if not group:
                 return
-            st.markdown(f'<div class="history-section-label">{label}</div>', unsafe_allow_html=True)
             for c in group:
                 is_active = c["id"] == st.session_state.active_conv_id
                 title     = c["title"]
@@ -1031,6 +1064,11 @@ def render_kpi_agent(df: pd.DataFrame | None = None):
     # Mensagens
     if conv["messages"]:
         st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
+        data_conv = _data_por_extenso(conv["created_at"])
+        st.markdown(
+            f'<div class="chat-date-sep"><span>{data_conv}</span></div>',
+            unsafe_allow_html=True,
+        )
         for msg in conv["messages"]:
             _render_bubble(msg["role"], msg["content"], msg.get("time", ""))
         st.markdown('</div>', unsafe_allow_html=True)

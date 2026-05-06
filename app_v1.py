@@ -21,7 +21,7 @@ from urllib.parse import urlencode
 from kpi_agent import (render_kpi_agent, _render_sidebar, _init_state,
                         carregar_insights, remover_insight,
                         _render_grafico, _render_tabela, _render_comparacao)
-from database import verify_user, create_db, add_user
+from database import verify_user, create_db, add_user, is_user_master, set_user_as_master, list_all_users, delete_user, user_exists
 
 import numpy as np
 import pandas as pd
@@ -49,6 +49,8 @@ st.set_page_config(
 # ─────────────────────────────────────────────────────────────────────────────
 # AUTENTICAÇÃO
 # ─────────────────────────────────────────────────────────────────────────────
+
+import sqlite3
 
 AUTH_SECRET = os.getenv("AUTH_SECRET")
 if not AUTH_SECRET:
@@ -88,6 +90,7 @@ def _set_saved_login(username: str | None):
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.username = None
+    st.session_state.is_master = False
 
 if 'auth_page' not in st.session_state:
     st.session_state.auth_page = "login"
@@ -97,52 +100,213 @@ if not st.session_state.logged_in:
     if saved_user:
         st.session_state.logged_in = True
         st.session_state.username = saved_user
+        st.session_state.is_master = is_user_master(saved_user)
 
 if not st.session_state.logged_in:
     if st.session_state.auth_page == "register":
-        st.title("Criar Conta — Deloitte")
-        new_username = st.text_input("Usuário")
-        new_password = st.text_input("Senha", type="password")
-        confirm_password = st.text_input("Confirmar Senha", type="password")
-        col_reg, col_back = st.columns(2)
-        with col_reg:
-            if st.button("Criar Conta", use_container_width=True):
-                if not new_username.strip():
-                    st.error("O nome de usuário não pode ser vazio.")
-                elif len(new_password) < 4:
-                    st.error("A senha deve ter pelo menos 4 caracteres.")
-                elif new_password != confirm_password:
-                    st.error("As senhas não coincidem.")
-                elif add_user(new_username.strip(), new_password):
-                    st.session_state.auth_page = "login"
-                    st.success(f"Usuário '{new_username.strip()}' criado com sucesso! Faça login.")
-                    st.rerun()
-                else:
-                    st.error(f"O usuário '{new_username.strip()}' já existe. Escolha outro nome.")
-        with col_back:
+        st.title("Criar Usuário — Deloitte")
+        
+        # Apenas masters podem criar usuários
+        if not st.session_state.is_master:
+            st.error("❌ Apenas administradores (Masters) podem criar novos usuários.")
             if st.button("Voltar ao Login", use_container_width=True):
                 st.session_state.auth_page = "login"
                 st.rerun()
+            st.stop()
+        
+        st.info(f"✓ Logado como: **{st.session_state.username}** (Admin Master)")
+        
+        with st.form("create_user_form"):
+            new_username = st.text_input("Nome do novo usuário")
+            new_password = st.text_input("Senha inicial", type="password")
+            confirm_password = st.text_input("Confirmar Senha", type="password")
+            make_master = st.checkbox("Tornar este usuário como Master também?", value=False)
+            
+            col_reg, col_back = st.columns(2)
+            with col_reg:
+                if st.form_submit_button("Criar Usuário", use_container_width=True):
+                    if not new_username.strip():
+                        st.error("O nome de usuário não pode ser vazio.")
+                    elif len(new_password) < 4:
+                        st.error("A senha deve ter pelo menos 4 caracteres.")
+                    elif new_password != confirm_password:
+                        st.error("As senhas não coincidem.")
+                    elif add_user(new_username.strip(), new_password):
+                        # Se deve ser master, atualizar no banco de dados
+                        if make_master:
+                            set_user_as_master(new_username.strip(), True)
+                            st.success(f"Usuário '{new_username.strip()}' criado com sucesso como **Master**!")
+                        else:
+                            st.success(f"Usuário '{new_username.strip()}' criado com sucesso!")
+                        st.session_state.auth_page = "login"
+                        st.rerun()
+                    else:
+                        st.error(f"O usuário '{new_username.strip()}' já existe. Escolha outro nome.")
+            with col_back:
+                if st.form_submit_button("Voltar ao Login", use_container_width=True):
+                    st.session_state.auth_page = "login"
+                    st.rerun()
     else:
         st.title("Login - Dashboard Executivo — Deloitte")
-        username = st.text_input("Usuário")
-        password = st.text_input("Senha", type="password")
-        col_login, col_new = st.columns(2)
-        with col_login:
-            if st.button("Entrar", use_container_width=True):
-                if verify_user(username, password):
-                    st.session_state.logged_in = True
-                    st.session_state.username = username
-                    _set_saved_login(username)
-                    st.success("Login realizado com sucesso!")
-                    st.rerun()
-                else:
-                    st.error("Usuário ou senha incorretos.")
-        with col_new:
-            if st.button("Criar Usuário", use_container_width=True):
-                st.session_state.auth_page = "register"
-                st.rerun()
+        
+        with st.form("login_form"):
+            username = st.text_input("Usuário")
+            password = st.text_input("Senha", type="password")
+            
+            # Se um master estiver logado, mostrar 2 colunas; senão, apenas 1
+            if st.session_state.is_master and st.session_state.logged_in:
+                col_login, col_new = st.columns(2)
+            else:
+                col_login = st.columns(1)[0]
+            
+            with col_login:
+                if st.form_submit_button("Entrar", use_container_width=True):
+                    if verify_user(username, password):
+                        st.session_state.logged_in = True
+                        st.session_state.username = username
+                        st.session_state.is_master = is_user_master(username)
+                        _set_saved_login(username)
+                        st.success("Login realizado com sucesso!")
+                        st.rerun()
+                    else:
+                        st.error("Usuário ou senha incorretos.")
+            
+            # Botão de criar usuário aparece apenas para masters já logados
+            if st.session_state.is_master and st.session_state.logged_in:
+                with col_new:
+                    if st.form_submit_button("Criar Usuário (Admin)", use_container_width=True):
+                        st.session_state.auth_page = "register"
+                        st.rerun()
     st.stop()  # Para a execução se não logado
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MENU DE ADMINISTRAÇÃO PARA MASTERS
+# ─────────────────────────────────────────────────────────────────────────────
+
+_ADMIN_CSS = """
+<style>
+/* Expander header */
+[data-testid="stSidebar"] [data-testid="stExpander"] summary {
+    font-size: 11px !important; color: #505870 !important;
+    padding: 5px 8px !important;
+}
+[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stVerticalBlockBorderWrapper"] {
+    padding-top: 0 !important; padding-bottom: 0 !important;
+}
+/* Remove padding extra das linhas de coluna */
+[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stHorizontalBlock"] {
+    gap: 4px !important; align-items: center !important;
+    padding-bottom: 0 !important; margin-bottom: 0 !important;
+}
+/* Botão Deletar — texto vermelho sublinhado, sem borda nem fundo */
+[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="baseButton-secondary"] {
+    font-size: 12px !important;
+    padding: 0 !important;
+    min-height: 0 !important; height: auto !important;
+    line-height: 1.4 !important;
+    color: #c03030 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-weight: 400 !important;
+    width: auto !important;
+    display: inline-flex !important;
+    text-decoration: underline !important;
+    cursor: pointer !important;
+}
+[data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="baseButton-secondary"]:hover {
+    color: #e04040 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+/* Badges */
+.adm-badge-m {
+    font-size: 9px; color: #c8880a;
+    background: rgba(200,136,10,0.12); border: 1px solid rgba(200,136,10,0.25);
+    border-radius: 10px; padding: 1px 6px; font-weight: 600;
+}
+.adm-badge-u {
+    font-size: 9px; color: #383e50;
+    background: rgba(255,255,255,0.02); border: 1px solid #1a1e2e;
+    border-radius: 10px; padding: 1px 5px;
+}
+/* Cabeçalho de seção */
+.adm-section {
+    font-size: 9px; color: #3a4050; text-transform: uppercase;
+    letter-spacing: 1px; font-weight: 600;
+    margin: 10px 0 2px 0; border-bottom: 1px solid #14161e; padding-bottom: 3px;
+}
+</style>
+"""
+
+def renderizar_admin_panel():
+    """Renderiza o painel de administração para masters."""
+    if not st.session_state.is_master:
+        return
+
+    with st.sidebar:
+        st.markdown(_ADMIN_CSS, unsafe_allow_html=True)
+        with st.expander("⚙️  Admin", expanded=False):
+            users = list_all_users()
+
+            # ── Lista de usuários ──────────────────────────────────────
+            st.markdown('<div class="adm-section">Usuários</div>', unsafe_allow_html=True)
+            for user in users:
+                col_name, col_del = st.columns([4, 2], gap="small")
+                with col_name:
+                    badge_html = (
+                        f' <span class="adm-badge-m">master</span>'
+                        if user['is_master'] else ''
+                    )
+                    st.markdown(
+                        f'<p style="margin:0;padding:10px 2px;font-size:13px;color:#7a8aa0;line-height:1.2">'
+                        f'{user["username"]}{badge_html}</p>',
+                        unsafe_allow_html=True,
+                    )
+                with col_del:
+                    if user['username'] != st.session_state.username:
+                        if st.button("Deletar", key=f"del_{user['username']}"):
+                            if delete_user(user['username']):
+                                st.rerun()
+
+            # ── Promover a master ──────────────────────────────────────
+            non_masters = [u['username'] for u in users if not u['is_master']]
+            if non_masters:
+                st.markdown('<div class="adm-section" style="margin-top:18px">Promover a master</div>', unsafe_allow_html=True)
+                sel = st.selectbox("", non_masters, key="promote_user_select", label_visibility="collapsed")
+                if st.button("↑ Promover", key="promote_button", use_container_width=True, type="primary"):
+                    if set_user_as_master(sel, True):
+                        st.rerun()
+
+            # ── Remover master ─────────────────────────────────────────
+            other_masters = [u['username'] for u in users
+                             if u['is_master'] and u['username'] != st.session_state.username]
+            if other_masters:
+                st.markdown('<div class="adm-section" style="margin-top:18px">Remover master</div>', unsafe_allow_html=True)
+                sel_r = st.selectbox("", other_masters, key="remove_master_select", label_visibility="collapsed")
+                if st.button("↓ Remover", key="remove_master_btn", use_container_width=True, type="primary"):
+                    if set_user_as_master(sel_r, False):
+                        st.rerun()
+
+renderizar_admin_panel()
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CABEÇALHO COM INFORMAÇÕES DO USUÁRIO
+# ─────────────────────────────────────────────────────────────────────────────
+
+col_header_left, col_header_right = st.columns([1, 0.15])
+with col_header_left:
+    st.markdown(f"### Bem-vindo, **{st.session_state.username}**")
+with col_header_right:
+    if st.button("🚪 Sair", use_container_width=True):
+        st.session_state.logged_in = False
+        st.session_state.username = None
+        st.session_state.is_master = False
+        _set_saved_login(None)
+        st.rerun()
+
+st.markdown("---")
 
 ROOT = Path(__file__).resolve().parent
 PASTA_ENTRADA = ROOT / "entrada"
@@ -776,12 +940,10 @@ if df_op_full.empty:
 
 st.title("Dashboard Executivo — Deloitte")
 
-# Botão de logout
-if st.button("Logout"):
-    st.session_state.logged_in = False
-    st.session_state.username = None
-    _set_saved_login(None)
-    st.rerun()
+if st.session_state.is_master:
+    if st.button("⚙️ Gerenciar Usuários", use_container_width=True):
+        st.session_state.auth_page = "admin"
+        st.rerun()
 
 
 fy_opts = fy_disponiveis(df_op_full)

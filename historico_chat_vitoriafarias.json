@@ -15,17 +15,10 @@
       }
     ],
     "kpis": [],
-    "graficos": [
-      {
-        "acao": "gerar_grafico",
-        "tipo": "bar",
-        "x": "area",
-        "y": "receita_liquida",
-        "color": null,
-        "titulo": "Receita Líquida por Área",
-        "agregacao": "sum"
-      }
-    ],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
     "created_at": "2026-05-02T13:30:09.594896"
   }
 ]
