@@ -29,6 +29,9 @@ ENV/
 *.swp
 *.swo
 
+# ─── Claude Code ─────────────────────────────────────────────────────────────
+.claude/worktrees/
+
 # ─── Sistema operacional ─────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
