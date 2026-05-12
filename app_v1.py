@@ -241,17 +241,47 @@ _ADMIN_CSS = """
 """
 
 def renderizar_admin_panel():
-    """Renderiza o painel de administração para masters."""
+    """Renderiza o painel de administração para usuários master."""
     if not st.session_state.is_master:
         return
 
     with st.sidebar:
         st.markdown(_ADMIN_CSS, unsafe_allow_html=True)
         with st.expander("⚙️  Admin", expanded=False):
+            # ── Criar novo usuário ─────────────────────────────────────
+            st.markdown('<div class="adm-section">Criar novo usuário</div>', unsafe_allow_html=True)
+
+            with st.form("admin_create_user_form", clear_on_submit=True):
+                new_username = st.text_input("Nome do usuário", key="admin_new_username")
+                new_password = st.text_input("Senha inicial", type="password", key="admin_new_password")
+                confirm_password = st.text_input("Confirmar senha", type="password", key="admin_confirm_password")
+                make_master = st.checkbox("Criar como master", value=False, key="admin_make_master")
+                submitted = st.form_submit_button("Criar usuário", use_container_width=True, type="primary")
+
+            if submitted:
+                clean_username = new_username.strip()
+
+                if not clean_username:
+                    st.error("O nome de usuário não pode ser vazio.")
+                elif len(new_password) < 4:
+                    st.error("A senha deve ter pelo menos 4 caracteres.")
+                elif new_password != confirm_password:
+                    st.error("As senhas não coincidem.")
+                elif user_exists(clean_username):
+                    st.error(f"O usuário '{clean_username}' já existe.")
+                elif add_user(clean_username, new_password):
+                    if make_master:
+                        set_user_as_master(clean_username, True)
+                        st.success(f"Usuário '{clean_username}' criado com sucesso como master.")
+                    else:
+                        st.success(f"Usuário '{clean_username}' criado com sucesso.")
+                else:
+                    st.error("Não foi possível criar o usuário. Verifique os dados e tente novamente.")
+
             users = list_all_users()
 
             # ── Lista de usuários ──────────────────────────────────────
-            st.markdown('<div class="adm-section">Usuários</div>', unsafe_allow_html=True)
+            st.markdown('<div class="adm-section" style="margin-top:18px">Usuários cadastrados</div>', unsafe_allow_html=True)
             for user in users:
                 col_name, col_del = st.columns([4, 2], gap="small")
                 with col_name:
@@ -940,11 +970,7 @@ if df_op_full.empty:
 
 st.title("Dashboard Executivo — Deloitte")
 
-if st.session_state.is_master:
-    if st.button("⚙️ Gerenciar Usuários", use_container_width=True):
-        st.session_state.auth_page = "admin"
-        st.rerun()
-
+# Usuários master gerenciam usuários pelo painel ⚙️ Admin na sidebar.
 
 fy_opts = fy_disponiveis(df_op_full)
 
