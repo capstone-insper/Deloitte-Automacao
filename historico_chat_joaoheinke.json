@@ -1,5 +1,69 @@
 [
   {
+    "id": "conv_20260512172139766324",
+    "title": "Nova conversa",
+    "messages": [
+      {
+        "role": "assistant",
+        "content": "Olá! Analisei os dados e preparei um panorama rápido:\n\n🟢 **Atingimento médio geral:** 104.4%\n▲ **Desvio total:** R$1,035 (3.5% vs previsto)\n🏆 **Projeto destaque:** P10 (R$5,083 em receita líquida)\n\nPosso gerar **gráficos**, **tabelas**, **comparativos** ou um **resumo executivo** completo. O que deseja?",
+        "time": "17:21"
+      },
+      {
+        "role": "user",
+        "content": "ola",
+        "time": "17:21"
+      },
+      {
+        "role": "assistant",
+        "content": "Olá! Estou aqui para ajudar com as métricas financeiras e os dados do projeto. Você gostaria de:\n\n* Visualizar um gráfico de receita líquida vs prevista?\n* Ver uma tabela com os principais projetos e suas receitas?\n* Comparar o desempenho entre duas áreas ou sub-áreas?\n* Obter um resumo executivo dos principais indicadores?\n\nOu talvez tenha uma pergunta específica sobre os dados ou as fórmulas utilizadas? Estou à disposição!",
+        "time": "17:21"
+      }
+    ],
+    "kpis": [],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
+    "created_at": "2026-05-12T17:21:39.766324"
+  },
+  {
+    "id": "conv_20260512172131788751",
+    "title": "Nova conversa",
+    "messages": [
+      {
+        "role": "assistant",
+        "content": "Olá! Analisei os dados e preparei um panorama rápido:\n\n🟢 **Atingimento médio geral:** 104.4%\n▲ **Desvio total:** R$1,035 (3.5% vs previsto)\n🏆 **Projeto destaque:** P10 (R$5,083 em receita líquida)\n\nPosso gerar **gráficos**, **tabelas**, **comparativos** ou um **resumo executivo** completo. O que deseja?",
+        "time": "17:21"
+      }
+    ],
+    "kpis": [],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
+    "created_at": "2026-05-12T17:21:31.788751"
+  },
+  {
+    "id": "conv_20260428140233657672",
+    "title": "oi",
+    "messages": [
+      {
+        "role": "user",
+        "content": "oi"
+      },
+      {
+        "role": "assistant",
+        "content": "Olá! Estou aqui para ajudar com os KPIs e análises financeiras do seu projeto. O que você gostaria de saber ou calcular hoje? Quer saber mais sobre os desvios de receita, a margem de contribuição ou talvez adicionar um novo KPI ao nosso dashboard? Estou à disposição!"
+      }
+    ],
+    "kpis": [],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
+    "created_at": "2026-04-28T14:02:33.657672"
+  },
+  {
     "id": "conv_20260428133424744123",
     "title": "Adicione KPI de atingimento médio por área",
     "messages": [
@@ -13,6 +77,10 @@
       }
     ],
     "kpis": [],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
     "created_at": "2026-04-28T13:34:24.744123"
   },
   {
@@ -40,6 +108,10 @@
         "contexto": "Por Área"
       }
     ],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
     "created_at": "2026-04-28T13:29:25.259200"
   },
   {
@@ -56,6 +128,10 @@
       }
     ],
     "kpis": [],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
     "created_at": "2026-04-28T13:28:09.707756"
   },
   {
@@ -72,13 +148,27 @@
       }
     ],
     "kpis": [],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
     "created_at": "2026-04-28T13:27:58.633710"
   },
   {
     "id": "conv_20260428132307770573",
     "title": "Nova conversa",
-    "messages": [],
+    "messages": [
+      {
+        "role": "assistant",
+        "content": "Olá! Analisei os dados e preparei um panorama rápido:\n\n🟢 **Atingimento médio geral:** 104.4%\n▲ **Desvio total:** R$1,035 (3.5% vs previsto)\n🏆 **Projeto destaque:** P10 (R$5,083 em receita líquida)\n\nPosso gerar **gráficos**, **tabelas**, **comparativos** ou um **resumo executivo** completo. O que deseja?",
+        "time": "17:47"
+      }
+    ],
     "kpis": [],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
     "created_at": "2026-04-28T13:23:07.770573"
   },
   {
@@ -103,6 +193,10 @@
       }
     ],
     "kpis": [],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
     "created_at": "2026-04-28T12:56:27.000947"
   },
   {
@@ -127,6 +221,10 @@
         "contexto": "Média do atingimento por área"
       }
     ],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
     "created_at": "2026-04-27T13:49:41.247012"
   },
   {
@@ -151,6 +249,10 @@
       }
     ],
     "kpis": [],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
     "created_at": "2026-04-27T13:45:42.495949"
   },
   {
@@ -167,6 +269,10 @@
       }
     ],
     "kpis": [],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
     "created_at": "2026-04-27T13:33:45.569412"
   },
   {
@@ -183,6 +289,10 @@
       }
     ],
     "kpis": [],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
     "created_at": "2026-04-27T13:32:45.670921"
   },
   {
@@ -215,6 +325,10 @@
       }
     ],
     "kpis": [],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
     "created_at": "2026-04-27T13:28:18.220995"
   },
   {
@@ -231,6 +345,10 @@
       }
     ],
     "kpis": [],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
     "created_at": "2026-04-27T13:23:19.138733"
   },
   {
@@ -247,6 +365,10 @@
       }
     ],
     "kpis": [],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
     "created_at": "2026-04-27T13:20:35.729056"
   },
   {
@@ -263,6 +385,10 @@
       }
     ],
     "kpis": [],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
     "created_at": "2026-04-27T13:17:05.804905"
   },
   {
@@ -279,6 +405,10 @@
       }
     ],
     "kpis": [],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
     "created_at": "2026-04-27T13:14:14.030299"
   },
   {
@@ -295,6 +425,10 @@
       }
     ],
     "kpis": [],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
     "created_at": "2026-04-23T22:03:47.885088"
   },
   {
@@ -311,6 +445,10 @@
       }
     ],
     "kpis": [],
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
     "created_at": "2026-04-23T22:02:36.476323"
   }
 ]

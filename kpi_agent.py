@@ -13,6 +13,7 @@ from __future__ import annotations
 import os
 import json
 import re
+import html
 from datetime import datetime
 from pathlib import Path
 
@@ -173,7 +174,9 @@ _CHAT_CSS = """
     padding: 18px 10px 18px 10px !important;
 }
 [data-testid="stSidebar"] [data-testid="stVerticalBlockBorderWrapper"],
-[data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 0 !important; }
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+    gap: 0.35rem !important;
+}
 
 /* Logo */
 .sidebar-logo {
@@ -209,6 +212,53 @@ _CHAT_CSS = """
     transform: translateY(-1px) !important;
 }
 
+/* Espaço entre Nova conversa e a lista de conversas
+   Observação: o espaçamento não pode depender apenas do gap padrão do Streamlit,
+   porque o app zera/compacta vários blocos da sidebar. Por isso há um spacer
+   real e também margin-top na primeira linha de conversa. */
+.new-chat-spacer {
+    display: block !important;
+    height: 18px !important;
+    min-height: 18px !important;
+    line-height: 0 !important;
+    font-size: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Linha de conversa: mantém título e X na mesma linha mesmo com sidebar estreita */
+[data-testid="stSidebar"] div:has(.conv-row-anchor) + [data-testid="stHorizontalBlock"],
+[data-testid="stSidebar"] div:has(.conv-row-anchor) + div [data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 6px !important;
+    margin-top: 8px !important;
+    margin-bottom: 2px !important;
+}
+[data-testid="stSidebar"] div:has(.conv-row-anchor) + [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child,
+[data-testid="stSidebar"] div:has(.conv-row-anchor) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child,
+[data-testid="stSidebar"] div:has(.conv-row-anchor) + div [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child,
+[data-testid="stSidebar"] div:has(.conv-row-anchor) + div [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+[data-testid="stSidebar"] div:has(.conv-row-anchor) + [data-testid="stHorizontalBlock"] > [data-testid="column"]:last-child,
+[data-testid="stSidebar"] div:has(.conv-row-anchor) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child,
+[data-testid="stSidebar"] div:has(.conv-row-anchor) + div [data-testid="stHorizontalBlock"] > [data-testid="column"]:last-child,
+[data-testid="stSidebar"] div:has(.conv-row-anchor) + div [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child {
+    flex: 0 0 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+}
+[data-testid="stSidebar"] div:has(.conv-row-anchor) + [data-testid="stHorizontalBlock"] > [data-testid="column"]:last-child [data-testid="stButton"],
+[data-testid="stSidebar"] div:has(.conv-row-anchor) + [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child [data-testid="stButton"],
+[data-testid="stSidebar"] div:has(.conv-row-anchor) + div [data-testid="stHorizontalBlock"] > [data-testid="column"]:last-child [data-testid="stButton"],
+[data-testid="stSidebar"] div:has(.conv-row-anchor) + div [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:last-child [data-testid="stButton"] {
+    width: 32px !important;
+}
+.conv-row-anchor { display: none; }
+
 /* Section label */
 .history-section-label {
     font-size: 9.5px; color: #505870; text-transform: uppercase;
@@ -230,6 +280,7 @@ _CHAT_CSS = """
     transition: background 0.15s, color 0.15s !important;
     white-space: nowrap !important; overflow: hidden !important;
     text-overflow: ellipsis !important;
+    min-width: 0 !important;
 }
 [data-testid="stSidebar"] [data-testid="baseButton-secondary"]:hover {
     background: rgba(255,255,255,0.05) !important;
@@ -280,10 +331,161 @@ _CHAT_CSS = """
     border-color: rgba(200,40,40,0.3) !important;
 }
 
+
+/* Compatibilidade com versões novas do Streamlit
+   Algumas versões usam stBaseButton-* em vez de baseButton-*.
+   Este bloco garante que os estilos sejam aplicados também nelas. */
+[data-testid="stSidebar"] [data-testid="stBaseButton-primary"],
+[data-testid="stSidebar"] button[kind="primary"] {
+    background: linear-gradient(135deg, #1555c0 0%, #012169 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.3px !important;
+    padding: 9px 14px !important;
+    box-shadow: 0 2px 10px rgba(1,33,105,0.45) !important;
+    transition: all 0.18s ease !important;
+}
+[data-testid="stSidebar"] [data-testid="stBaseButton-primary"]:hover,
+[data-testid="stSidebar"] button[kind="primary"]:hover {
+    background: linear-gradient(135deg, #1e6ae8 0%, #0a2a80 100%) !important;
+    box-shadow: 0 4px 16px rgba(1,33,105,0.6) !important;
+    transform: translateY(-1px) !important;
+}
+[data-testid="stSidebar"] [data-testid="stBaseButton-secondary"],
+[data-testid="stSidebar"] button[kind="secondary"] {
+    background: transparent !important;
+    border: none !important;
+    color: #6a7488 !important;
+    text-align: left !important;
+    padding: 9px 10px !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-weight: 400 !important;
+    transition: background 0.15s, color 0.15s !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    min-width: 0 !important;
+}
+[data-testid="stSidebar"] [data-testid="stBaseButton-secondary"]:hover,
+[data-testid="stSidebar"] button[kind="secondary"]:hover {
+    background: rgba(255,255,255,0.05) !important;
+    color: #b0bcd0 !important;
+}
+*:has(> .active-conv-indicator) ~ * [data-testid="stColumn"]:first-child [data-testid="stBaseButton-secondary"],
+*:has(.active-conv-indicator) + * [data-testid="stColumn"]:first-child [data-testid="stBaseButton-secondary"],
+*:has(> .active-conv-indicator) ~ * [data-testid="stColumn"]:first-child button[kind="secondary"],
+*:has(.active-conv-indicator) + * [data-testid="stColumn"]:first-child button[kind="secondary"] {
+    background: rgba(134,188,37,0.1) !important;
+    color: #c8d8e8 !important;
+    border-left: 3px solid #86BC25 !important;
+    border-radius: 0 8px 8px 0 !important;
+    padding-left: 12px !important;
+    font-weight: 500 !important;
+}
+[data-testid="stSidebar"] [data-testid="stColumn"]:last-child,
+[data-testid="stSidebar"] [data-testid="column"]:last-child,
+[data-testid="stSidebar"] [data-testid="stColumn"]:last-child > *,
+[data-testid="stSidebar"] [data-testid="column"]:last-child > *,
+[data-testid="stSidebar"] [data-testid="stColumn"]:last-child .stButton,
+[data-testid="stSidebar"] [data-testid="column"]:last-child .stButton {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+}
+[data-testid="stSidebar"] [data-testid="stColumn"]:last-child [data-testid="stBaseButton-secondary"],
+[data-testid="stSidebar"] [data-testid="column"]:last-child [data-testid="stBaseButton-secondary"],
+[data-testid="stSidebar"] [data-testid="stColumn"]:last-child button[kind="secondary"],
+[data-testid="stSidebar"] [data-testid="column"]:last-child button[kind="secondary"] {
+    color: #3a4050 !important;
+    padding: 0 !important;
+    font-size: 13px !important;
+    line-height: 1 !important;
+    width: 26px !important;
+    max-width: 26px !important;
+    min-width: 26px !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    border-radius: 6px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid #252838 !important;
+    text-align: center !important;
+}
+[data-testid="stSidebar"] [data-testid="stColumn"]:last-child [data-testid="stBaseButton-secondary"]:hover,
+[data-testid="stSidebar"] [data-testid="column"]:last-child [data-testid="stBaseButton-secondary"]:hover,
+[data-testid="stSidebar"] [data-testid="stColumn"]:last-child button[kind="secondary"]:hover,
+[data-testid="stSidebar"] [data-testid="column"]:last-child button[kind="secondary"]:hover {
+    color: #e05050 !important;
+    background: rgba(200,40,40,0.15) !important;
+    border-color: rgba(200,40,40,0.3) !important;
+}
+
+/* Ajuste visual final da lista de conversas
+   Mantém o botão da conversa com fundo branco e o botão X também branco,
+   sem afetar o botão primário de Nova conversa. */
+[data-testid="stSidebar"] [data-testid="baseButton-secondary"],
+[data-testid="stSidebar"] [data-testid="stBaseButton-secondary"],
+[data-testid="stSidebar"] button[kind="secondary"] {
+    background: #ffffff !important;
+    color: #1b2434 !important;
+    border: 1px solid rgba(255,255,255,0.9) !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.10) !important;
+}
+[data-testid="stSidebar"] [data-testid="baseButton-secondary"]:hover,
+[data-testid="stSidebar"] [data-testid="stBaseButton-secondary"]:hover,
+[data-testid="stSidebar"] button[kind="secondary"]:hover {
+    background: #f3f5f8 !important;
+    color: #0d1726 !important;
+    border-color: #ffffff !important;
+}
+*:has(> .active-conv-indicator) ~ * [data-testid="stColumn"]:first-child [data-testid="baseButton-secondary"],
+*:has(.active-conv-indicator) + * [data-testid="stColumn"]:first-child [data-testid="baseButton-secondary"],
+*:has(> .active-conv-indicator) ~ * [data-testid="stColumn"]:first-child [data-testid="stBaseButton-secondary"],
+*:has(.active-conv-indicator) + * [data-testid="stColumn"]:first-child [data-testid="stBaseButton-secondary"],
+*:has(> .active-conv-indicator) ~ * [data-testid="stColumn"]:first-child button[kind="secondary"],
+*:has(.active-conv-indicator) + * [data-testid="stColumn"]:first-child button[kind="secondary"] {
+    background: #ffffff !important;
+    color: #0d1726 !important;
+    border: 1px solid #ffffff !important;
+    border-left: 4px solid #86BC25 !important;
+    border-radius: 8px !important;
+    padding-left: 10px !important;
+    font-weight: 500 !important;
+}
+[data-testid="stSidebar"] [data-testid="stColumn"]:last-child [data-testid="baseButton-secondary"],
+[data-testid="stSidebar"] [data-testid="column"]:last-child [data-testid="baseButton-secondary"],
+[data-testid="stSidebar"] [data-testid="stColumn"]:last-child [data-testid="stBaseButton-secondary"],
+[data-testid="stSidebar"] [data-testid="column"]:last-child [data-testid="stBaseButton-secondary"],
+[data-testid="stSidebar"] [data-testid="stColumn"]:last-child button[kind="secondary"],
+[data-testid="stSidebar"] [data-testid="column"]:last-child button[kind="secondary"] {
+    background: #ffffff !important;
+    color: #1b2434 !important;
+    border: 1px solid rgba(255,255,255,0.9) !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.10) !important;
+}
+[data-testid="stSidebar"] [data-testid="stColumn"]:last-child [data-testid="baseButton-secondary"]:hover,
+[data-testid="stSidebar"] [data-testid="column"]:last-child [data-testid="baseButton-secondary"]:hover,
+[data-testid="stSidebar"] [data-testid="stColumn"]:last-child [data-testid="stBaseButton-secondary"]:hover,
+[data-testid="stSidebar"] [data-testid="column"]:last-child [data-testid="stBaseButton-secondary"]:hover,
+[data-testid="stSidebar"] [data-testid="stColumn"]:last-child button[kind="secondary"]:hover,
+[data-testid="stSidebar"] [data-testid="column"]:last-child button[kind="secondary"]:hover {
+    background: #fff3f3 !important;
+    color: #c53030 !important;
+    border-color: #ffd1d1 !important;
+}
+
 /* Conv item date */
 .conv-date-row {
     font-size: 10.5px; color: #556070;
-    margin: -2px 0 16px 12px; padding: 2px 7px;
+    margin: 2px 0 12px 12px; padding: 2px 7px;
     line-height: 1; display: inline-block;
     background: rgba(255,255,255,0.03);
     border: 1px solid #1e2238;
@@ -804,7 +1006,26 @@ def _render_grafico(spec: dict, df: pd.DataFrame | None, key: str):
         st.warning(f"Erro ao gerar gráfico: {e}")
 
 
+def _limpar_html_salvo(texto: str) -> str:
+    """Remove fragmentos HTML que ficaram salvos em históricos antigos."""
+    if texto is None:
+        return ""
+    texto = html.unescape(str(texto))
+    texto = texto.replace("\r\n", "\n").replace("\r", "\n")
+    texto = re.sub(r"<br\s*/?>", "\n", texto, flags=re.IGNORECASE)
+    texto = re.sub(r"</?div[^>]*>", "\n", texto, flags=re.IGNORECASE)
+    texto = re.sub(r"</?span[^>]*>", "", texto, flags=re.IGNORECASE)
+    texto = re.sub(r"</?p[^>]*>", "\n", texto, flags=re.IGNORECASE)
+    texto = re.sub(r"</?(strong|b)[^>]*>", "**", texto, flags=re.IGNORECASE)
+    texto = re.sub(r"<[^>]+>", "", texto)
+    texto = re.sub(r"[ \t]+\n", "\n", texto)
+    texto = re.sub(r"\n{3,}", "\n\n", texto)
+    return texto.strip()
+
+
 def _md_to_html(text: str) -> str:
+    text = _limpar_html_salvo(text)
+    text = html.escape(text)
     text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
     lines, out, in_list = text.split("\n"), [], False
     for line in lines:
@@ -832,20 +1053,20 @@ def _render_bubble(role: str, content: str, time_str: str = ""):
     name_cls = "user-name" if is_user else "ai-name"
     text_cls = "user-text" if is_user else ""
     blk_cls  = "user-block" if is_user else ""
-    ts_html  = f'<span class="msg-ts">{time_str}</span>' if time_str else ""
-    st.markdown(
-        f"""<div class="msg-block {blk_cls}">
-            <div class="msg-avatar {side}">{letter}</div>
-            <div class="msg-right">
-                <div class="msg-meta">
-                    <span class="msg-sender {name_cls}">{name}</span>
-                    {ts_html}
-                </div>
-                <div class="msg-text {text_cls}">{_md_to_html(content)}</div>
-            </div>
-        </div>""",
-        unsafe_allow_html=True,
+    ts_html  = f'<span class="msg-ts">{html.escape(str(time_str))}</span>' if time_str else ""
+    content_html = _md_to_html(content)
+    bubble_html = (
+        f'<div class="msg-block {blk_cls}">'
+        f'<div class="msg-avatar {side}">{letter}</div>'
+        f'<div class="msg-right">'
+        f'<div class="msg-meta">'
+        f'<span class="msg-sender {name_cls}">{name}</span>{ts_html}'
+        f'</div>'
+        f'<div class="msg-text {text_cls}">{content_html}</div>'
+        f'</div>'
+        f'</div>'
     )
+    st.markdown(bubble_html, unsafe_allow_html=True)
 
 
 _DIAS_PT = ["Segunda-feira", "Terça-feira", "Quarta-feira",
@@ -936,6 +1157,8 @@ def _render_sidebar():
             st.session_state._jump_to_assistant = True
             st.rerun()
 
+        st.markdown('<div class="new-chat-spacer">&nbsp;</div>', unsafe_allow_html=True)
+
         if not st.session_state.conversations:
             st.markdown('<div style="font-size:12px;color:#2e3340;margin-top:16px;text-align:center">Nenhuma conversa ainda.</div>', unsafe_allow_html=True)
             return
@@ -961,7 +1184,11 @@ def _render_sidebar():
                 if is_active:
                     st.markdown('<div class="active-conv-indicator"></div>', unsafe_allow_html=True)
 
-                col_btn, col_del = st.columns([6, 1])
+                st.markdown('<span class="conv-row-anchor"></span>', unsafe_allow_html=True)
+                try:
+                    col_btn, col_del = st.columns([0.86, 0.14], gap="small", vertical_alignment="center")
+                except TypeError:
+                    col_btn, col_del = st.columns([6, 1], gap="small")
                 with col_btn:
                     if st.button(f"💬  {title[:30]}", key=f"sel_{c['id']}", use_container_width=True):
                         st.session_state.active_conv_id = c["id"]
@@ -1063,7 +1290,6 @@ def render_kpi_agent(df: pd.DataFrame | None = None):
 
     # Mensagens
     if conv["messages"]:
-        st.markdown('<div class="chat-wrapper">', unsafe_allow_html=True)
         data_conv = _data_por_extenso(conv["created_at"])
         st.markdown(
             f'<div class="chat-date-sep"><span>{data_conv}</span></div>',
@@ -1071,7 +1297,6 @@ def render_kpi_agent(df: pd.DataFrame | None = None):
         )
         for msg in conv["messages"]:
             _render_bubble(msg["role"], msg["content"], msg.get("time", ""))
-        st.markdown('</div>', unsafe_allow_html=True)
 
     cid = conv["id"]
 
