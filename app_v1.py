@@ -428,6 +428,19 @@ div[class*="st-key-navtab_"] button:active {
     outline: none !important;
 }
 
+@media (max-width: 1300px) {
+    div[class*="st-key-navtab_"] button {
+        font-size: 0.78rem !important;
+        padding: 0.75rem 0.25rem 0.65rem 0.25rem !important;
+    }
+}
+@media (max-width: 1000px) {
+    div[class*="st-key-navtab_"] button {
+        font-size: 0.68rem !important;
+        padding: 0.75rem 0.15rem 0.65rem 0.15rem !important;
+    }
+}
+
 </style>
 """, unsafe_allow_html=True)
 
