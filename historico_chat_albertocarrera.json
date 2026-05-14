@@ -1,29 +1,19 @@
 [
   {
-    "id": "conv_20260429173319182042",
-    "title": "gere um gráfico de pizza da receita liquid…",
+    "id": "conv_20260514150425325289",
+    "title": "Nova conversa",
     "messages": [
       {
-        "role": "user",
-        "content": "gere um gráfico de pizza da receita liquida por projeto"
-      },
-      {
         "role": "assistant",
-        "content": "Gráfico gerado acima."
+        "content": "Olá! Analisei os dados e preparei um panorama rápido:\n\n🟢 **Atingimento médio geral:** 104.4%\n▲ **Desvio total:** R$1,035 (3.5% vs previsto)\n🏆 **Projeto destaque:** P10 (R$5,083 em receita líquida)\n\nPosso gerar **gráficos**, **tabelas**, **comparativos** ou um **resumo executivo** completo. O que deseja?",
+        "time": "15:04"
       }
     ],
     "kpis": [],
-    "graficos": [
-      {
-        "acao": "gerar_grafico",
-        "tipo": "pie",
-        "x": "projeto",
-        "y": "receita_liquida",
-        "color": null,
-        "titulo": "Receita Líquida por Projeto",
-        "agregacao": "sum"
-      }
-    ],
-    "created_at": "2026-04-29T17:33:19.182100"
+    "graficos": [],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
+    "created_at": "2026-05-14T15:04:25.325313"
   }
 ]
