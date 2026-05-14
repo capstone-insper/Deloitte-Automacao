@@ -329,7 +329,7 @@ col_header_left, col_header_right = st.columns([1, 0.15])
 with col_header_left:
     st.markdown(f"### Bem-vindo, **{st.session_state.username}**")
 with col_header_right:
-    if st.button("🚪 Sair", use_container_width=True):
+    if st.button("Sair", use_container_width=True):
         st.session_state.logged_in = False
         st.session_state.username = None
         st.session_state.is_master = False
