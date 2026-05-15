@@ -971,7 +971,7 @@ def _render_grafico(spec: dict, df: pd.DataFrame | None, key: str):
         st.warning("Sem dados para renderizar o gráfico.")
         return
 
-    tipo      = spec.get("tipo", "bar")
+    tipo      = spec.get("chart_tipo") or spec.get("tipo", "bar")
     x_col     = spec.get("x")
     y_col     = spec.get("y")
     color_col = spec.get("color") or None
@@ -1309,7 +1309,7 @@ def render_kpi_agent(df: pd.DataFrame | None = None):
             _, col_btn, _ = st.columns([1, 2, 1])
             with col_btn:
                 if st.button("＋ Adicionar a Meus Insights", key=f"ins_g_{cid}_{i}", use_container_width=True):
-                    adicionar_insight({**spec, "tipo": "grafico"})
+                    adicionar_insight({**spec, "chart_tipo": spec.get("tipo", "bar"), "tipo": "grafico"})
                     st.toast("Gráfico adicionado a Meus Insights!", icon="✅")
         if st.button("Limpar Gráficos", key="btn_limpar_graficos"):
             conv["graficos"] = []

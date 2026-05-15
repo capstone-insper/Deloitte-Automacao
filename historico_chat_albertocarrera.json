@@ -1,5 +1,42 @@
 [
   {
+    "id": "conv_20260515103153955067",
+    "title": "Nova conversa",
+    "messages": [
+      {
+        "role": "assistant",
+        "content": "Olá! Analisei os dados e preparei um panorama rápido:\n\n🟢 **Atingimento médio geral:** 104.4%\n▲ **Desvio total:** R$1,035 (3.5% vs previsto)\n🏆 **Projeto destaque:** P10 (R$5,083 em receita líquida)\n\nPosso gerar **gráficos**, **tabelas**, **comparativos** ou um **resumo executivo** completo. O que deseja?",
+        "time": "10:31"
+      },
+      {
+        "role": "user",
+        "content": "crie um grafico de pizza com os valores totais de cada area",
+        "time": "10:32"
+      },
+      {
+        "role": "assistant",
+        "content": "Aqui está o JSON para gerar o gráfico de pizza:\n\n\n\nCom base nos dados, o gráfico de pizza terá as seguintes fatias:\n\n* Área SL01: R$20,776 (68,5% do total)\n* Área SL02: R$9,522 (31,5% do total)\n\nO gráfico mostrará a distribuição da receita líquida por área, com a Área SL01 representando a maior fatia.",
+        "time": "10:32"
+      }
+    ],
+    "kpis": [],
+    "graficos": [
+      {
+        "acao": "gerar_grafico",
+        "tipo": "pie",
+        "x": "area",
+        "y": "receita_liquida",
+        "color": null,
+        "titulo": "Receita Líquida por Área",
+        "agregacao": "sum"
+      }
+    ],
+    "tabelas": [],
+    "comparacoes": [],
+    "resumos": [],
+    "created_at": "2026-05-15T10:31:53.955114"
+  },
+  {
     "id": "conv_20260514150425325289",
     "title": "Nova conversa",
     "messages": [
@@ -7,10 +44,30 @@
         "role": "assistant",
         "content": "Olá! Analisei os dados e preparei um panorama rápido:\n\n🟢 **Atingimento médio geral:** 104.4%\n▲ **Desvio total:** R$1,035 (3.5% vs previsto)\n🏆 **Projeto destaque:** P10 (R$5,083 em receita líquida)\n\nPosso gerar **gráficos**, **tabelas**, **comparativos** ou um **resumo executivo** completo. O que deseja?",
         "time": "15:04"
+      },
+      {
+        "role": "user",
+        "content": "gere um grafico de pizza com os valores de cada projeto",
+        "time": "10:30"
+      },
+      {
+        "role": "assistant",
+        "content": "Aqui está um resumo dos valores:\n- Projeto P10: R$5,083\n- Projeto P2: R$3,790\n- Projeto P3: R$2,988\n- Projeto P9: R$2,806\n- Projeto P1: R$2,743\nOutros projetos somam: R$12,788\n\nO Projeto P10 tem a maior fatia com 16,8% do total. Você gostaria de comparar esses valores com algo mais?",
+        "time": "10:30"
       }
     ],
     "kpis": [],
-    "graficos": [],
+    "graficos": [
+      {
+        "acao": "gerar_grafico",
+        "tipo": "pie",
+        "x": "projeto",
+        "y": "receita_liquida",
+        "color": "projeto",
+        "titulo": "Receita Líquida por Projeto",
+        "agregacao": "sum"
+      }
+    ],
     "tabelas": [],
     "comparacoes": [],
     "resumos": [],

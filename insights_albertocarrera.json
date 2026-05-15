@@ -2,21 +2,11 @@
   {
     "acao": "gerar_grafico",
     "tipo": "grafico",
-    "x": "projeto",
+    "x": "area",
     "y": "receita_liquida",
     "color": null,
-    "titulo": "Receita Líquida por Projeto",
+    "titulo": "Receita Líquida por Área",
     "agregacao": "sum",
-    "saved_at": "14/05/2026 15:01"
-  },
-  {
-    "acao": "gerar_grafico",
-    "tipo": "grafico",
-    "x": "projeto",
-    "y": "receita_liquida",
-    "color": null,
-    "titulo": "Receita Líquida por Projeto",
-    "agregacao": "sum",
-    "saved_at": "14/05/2026 15:03"
+    "saved_at": "15/05/2026 10:32"
   }
 ]
